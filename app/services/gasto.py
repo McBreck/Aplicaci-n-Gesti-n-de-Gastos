@@ -3,10 +3,9 @@
 Requisitos: RF-05 a RF-10. Reglas: RN-01 a RN-04 y RN-09.
 """
 import math
-import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from itertools import groupby
 
 from sqlalchemy import func, or_, select
@@ -17,9 +16,9 @@ from app.models import Gasto, MetodoPago
 from app.services import auditoria
 from app.services.categoria import obtener_categoria
 from app.services.formato import fecha_corta, hoy_lima
+from app.services.validacion import ErrorValidacion, interpretar_monto  # noqa: F401  (parte de la API del servicio)
 
 ENTIDAD = "gasto"
-MONTO_MAXIMO = Decimal("99999999.99")
 LONGITUD_DESCRIPCION = 255
 LONGITUD_BUSQUEDA = 100
 POR_PAGINA = 50
@@ -29,50 +28,12 @@ ESTADOS_FILTRO = ("completo", "incompleto")
 # Campos que pueden faltar (fecha y monto son obligatorios), en orden de desempate
 CAMPOS_OPCIONALES = ("categoría", "descripción", "método de pago")
 
-MENSAJE_MONTO_INVALIDO = "Escribe el monto solo con números, por ejemplo 15.50."
-_PATRON_NUMERO = re.compile(r"^(\d+(\.\d*)?|\.\d+)$")
-_PATRON_DECIMAL_CON_COMA = re.compile(r"^\d+,\d{1,2}$")
-_PATRON_MILES_CON_COMA = re.compile(r"^\d{1,3}(,\d{3})+(\.\d*)?$")
 # Búsqueda sin distinguir tildes (no requiere la extensión unaccent)
 _CON_TILDE = "áéíóúüñÁÉÍÓÚÜÑ"
 _SIN_TILDE = "aeiouunAEIOUUN"
 
 
-class ErrorValidacion(Exception):
-    """Datos inválidos: errores por campo, con mensajes para el usuario."""
-
-    def __init__(self, errores: dict[str, str]):
-        super().__init__("; ".join(errores.values()))
-        self.errores = errores
-
-
-# --- Validación (RN-02, RN-03, RN-04) -------------------------------------------
-
-def interpretar_monto(texto: str | None) -> Decimal:
-    """RN-03: acepta '15.50', '15,50', '1,234.56' y 'S/ 20'. Lanza ValueError con el mensaje."""
-    valor = (texto or "").replace("S/", "").replace(" ", "").strip()
-    if not valor:
-        raise ValueError("Escribe el monto del gasto.")
-    negativo = valor.startswith("-")
-    valor = valor.lstrip("+-")
-    if _PATRON_MILES_CON_COMA.match(valor):
-        valor = valor.replace(",", "")
-    elif _PATRON_DECIMAL_CON_COMA.match(valor):
-        valor = valor.replace(",", ".")
-    if not _PATRON_NUMERO.match(valor):
-        raise ValueError(MENSAJE_MONTO_INVALIDO)
-    try:
-        monto = Decimal(valor)
-    except InvalidOperation as error:
-        raise ValueError(MENSAJE_MONTO_INVALIDO) from error
-    if negativo or monto <= 0:
-        raise ValueError("El monto debe ser mayor que cero.")
-    if monto != monto.quantize(Decimal("0.01")):
-        raise ValueError("El monto puede tener hasta dos decimales.")
-    if monto > MONTO_MAXIMO:
-        raise ValueError("El monto no puede ser mayor que S/ 99,999,999.99.")
-    return monto.quantize(Decimal("0.01"))
-
+# --- Validación (RN-02, RN-03, RN-04); el monto se interpreta en validacion.py ----
 
 def interpretar_fecha(texto: str | None, hoy: date) -> date:
     """RN-04: fecha en formato AAAA-MM-DD o dd/mm/aaaa, no posterior a hoy en Lima."""
