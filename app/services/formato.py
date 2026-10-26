@@ -38,6 +38,21 @@ def soles(valor) -> str:
     return f"{signo}S/ {abs(monto):,.2f}"
 
 
+def porcentaje(valor, decimales: int = 1) -> str:
+    """66.666 → '66.7 %'. Sin valor → '—'."""
+    if valor is None:
+        return "—"
+    return f"{float(valor):,.{decimales}f} %"
+
+
+def unir_lista(elementos) -> str:
+    """['categoría', 'descripción', 'método de pago'] → 'categoría, descripción y método de pago'."""
+    elementos = list(elementos)
+    if len(elementos) <= 1:
+        return "".join(elementos)
+    return f"{', '.join(elementos[:-1])} y {elementos[-1]}"
+
+
 def _en_lima(valor: date | datetime) -> date | datetime:
     if isinstance(valor, datetime) and valor.tzinfo is not None:
         return valor.astimezone(ZONA_LIMA)
