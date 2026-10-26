@@ -7,10 +7,10 @@ Instrucciones permanentes para cualquier sesión de Claude Code en este reposito
 ## Reglas que no se negocian (sección 0 de la especificación)
 
 1. **Commits automáticos con autoría del usuario** (regla modificada por el usuario el 26/10/2026; reemplaza a "yo hago los commits a mano" de la especificación original).
-   - Al cerrar cada etapa, Claude ejecuta `git add` y `git commit` con commits pequeños y coherentes, y luego se detiene.
-   - El autor es siempre el usuario: `McBreck <mponcev4@upao.edu.pe>`, configurado con `git config --local` en este repositorio.
+   - Al cerrar cada etapa, Claude ejecuta `git add`, `git commit` (commits pequeños y coherentes) y `git push` de la rama de trabajo (`develop`), y luego se detiene.
+   - El autor es siempre el usuario: `McBreck <mponcev4@upao.edu.pe>`, configurado con `git config --local` en este repositorio. Verificar `git config user.email` antes de cada commit.
    - Los mensajes **no llevan** `Co-Authored-By: Claude` ni ninguna otra atribución a Claude.
-   - Claude NO ejecuta sin permiso explícito en ese momento: `git push`, `git merge`, `git tag`, `git rebase`, `git reset`, `git stash` ni comandos destructivos.
+   - Claude NO ejecuta sin permiso explícito en ese momento: `git merge`, `git tag`, `git rebase`, `git reset`, `git stash`, `push --force` ni comandos destructivos (la fusión a `main` y la etiqueta de cada fase se piden en la compuerta).
 2. **Trabajo por etapas, una por vez.** Cada etapa corresponde a un elemento de la EDT (`07_plan_implementacion.md`). Al terminar: ejecutar pruebas, entregar el cierre de etapa (sección 14) y **detenerse**. No empezar la siguiente hasta que el usuario escriba "continúa con la etapa N".
 3. **No adelantar trabajo** de etapas posteriores ni agregar funciones fuera de la especificación. Si algo no está definido, preguntar antes de asumir.
 4. **Si una petición contradice la especificación, avisar antes de hacerlo.**

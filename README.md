@@ -28,8 +28,6 @@ Tecnología principal: Flask 3, SQLAlchemy 2, Alembic (Flask-Migrate), psycopg 3
 
 ## Instalación local (Windows)
 
-> La estructura de la aplicación se crea en la Etapa 1 (EDT 3.1). Los pasos de abajo funcionarán desde esa etapa.
-
 1. Clona el repositorio y entra en la carpeta:
    ```powershell
    git clone <url-del-repositorio>
@@ -45,11 +43,14 @@ Tecnología principal: Flask 3, SQLAlchemy 2, Alembic (Flask-Migrate), psycopg 3
    ```powershell
    pip install -r requirements-dev.txt
    ```
-4. Crea las bases de datos de desarrollo y de pruebas en PostgreSQL 16:
+4. Crea en PostgreSQL 16 el rol de la aplicación (sin privilegios de superusuario) y las bases de desarrollo y de pruebas. Cambia `CLAVE` por una contraseña propia:
    ```powershell
-   psql -U postgres -h localhost -c "CREATE DATABASE controlgastos;"
-   psql -U postgres -h localhost -c "CREATE DATABASE controlgastos_pruebas;"
+   psql -U postgres -h localhost -c "CREATE ROLE controlgastos LOGIN PASSWORD 'CLAVE' NOSUPERUSER NOCREATEDB NOCREATEROLE;"
+   psql -U postgres -h localhost -c "ALTER ROLE controlgastos SET timezone = 'America/Lima';"
+   psql -U postgres -h localhost -c "CREATE DATABASE controlgastos OWNER controlgastos ENCODING 'UTF8' TEMPLATE template0;"
+   psql -U postgres -h localhost -c "CREATE DATABASE controlgastos_pruebas OWNER controlgastos ENCODING 'UTF8' TEMPLATE template0;"
    ```
+   > ⚠️ Las pruebas **borran y recrean** la base de `TEST_DATABASE_URL`. Por seguridad, su nombre debe contener `prueba`.
 5. Copia `.env.example` a `.env` y completa `SECRET_KEY`, `DATABASE_URL` y `TEST_DATABASE_URL`:
    ```powershell
    Copy-Item .env.example .env
@@ -60,9 +61,9 @@ Tecnología principal: Flask 3, SQLAlchemy 2, Alembic (Flask-Migrate), psycopg 3
    flask db upgrade
    flask crear-admin
    ```
-7. Inicia el servidor de desarrollo y abre http://127.0.0.1:5000:
+7. Inicia el servidor de desarrollo y abre http://127.0.0.1:5000/salud (debe responder `{"estado": "ok"}`):
    ```powershell
-   flask run
+   flask run --debug
    ```
 
 ## Comandos
@@ -70,8 +71,9 @@ Tecnología principal: Flask 3, SQLAlchemy 2, Alembic (Flask-Migrate), psycopg 3
 | Comando | Para qué sirve | Disponible desde |
 |---|---|---|
 | `flask db upgrade` | Aplica las migraciones a la base de datos | Etapa 1 |
+| `flask db check` | Verifica que los modelos coinciden con las migraciones | Etapa 1 |
 | `flask crear-admin` | Crea la cuenta de administrador | Etapa 1 |
-| `flask run` | Servidor de desarrollo | Etapa 1 |
+| `flask run --debug` | Servidor de desarrollo | Etapa 1 |
 | `pytest` | Ejecuta todas las pruebas (usa `TEST_DATABASE_URL`) | Etapa 1 |
 | `pytest --cov=app/services` | Pruebas con cobertura de la capa de servicios | Etapa 1 |
 | `flask demo crear` | Crea la cuenta "PRUEBA Panadería" con datos de prueba | Etapa 8 |
