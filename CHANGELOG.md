@@ -4,6 +4,37 @@ Todos los cambios relevantes de ControlGastos se registran en este archivo, agru
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Secciones por entrada: **Agregado**, **Cambiado**, **Corregido**, **Eliminado**, **Seguridad**.
 
+## [EDT 3.3] Gastos y completitud — 26/10/2026
+
+### Agregado
+- P-03 Registrar y editar gasto (RF-05 a RF-07, CU-05, CU-06) en un solo formulario:
+  - monto grande que acepta coma o punto;
+  - fecha de hoy por defecto;
+  - categorías y métodos de pago como botones grandes;
+  - descripción con contador de caracteres y ayuda bajo cada campo.
+- Edición de gastos: los campos vacíos se resaltan en ámbar con "Falta completar". Una categoría desactivada se muestra al editar, pero no al registrar.
+- Aviso de completitud al guardar (RF-06, CU-15): "Gasto guardado · Completo" o "Gasto guardado · Incompleto: falta …", con el botón "Completar ahora" (flujo alterno 7a).
+- Eliminación lógica con modal de confirmación (RF-08, CU-07, RN-09): el gasto desaparece de los listados y queda en la bitácora.
+- P-04 Mis gastos (RF-09, RF-10, CU-08):
+  - total del resultado, % de registros completos (A8) y dato más omitido;
+  - filtros por fechas, categoría (incluida "Sin categoría"), método de pago (incluido "Sin registrar"), estado y búsqueda en la descripción, que no distingue tildes ni mayúsculas;
+  - en el celular, los filtros se pliegan en "Filtros";
+  - 50 gastos por página, del más reciente al más antiguo; por defecto se muestra el mes actual;
+  - si no hay resultados: "No hay gastos con estos filtros" + "Limpiar filtros" (flujo alterno 4a).
+- Componentes `actividad` (agrupación por "Hoy", "Ayer" o fecha, con total del día y agrupación opcional en "N registros" de una misma categoría), `registro_rapido` y `filtros_gastos`.
+- El registro rápido aparece arriba del inicio (punto 1 de P-02).
+- `GastoService`:
+  - validación de RN-02 a RN-04 que devuelve todos los errores a la vez;
+  - listado con tres consultas fijas por página (sin N+1);
+  - completitud A8 con desempate en el orden de RN-01;
+  - bitácora CREAR, MODIFICAR y ELIMINAR con los valores anteriores y nuevos.
+- `CategoriaService` con las consultas que necesita el registro (la gestión completa llega en la EDT 3.4).
+- Filtro `porcentaje` ("66.7 %").
+
+### Seguridad
+- Las rutas de gastos son solo para microemprendedores (el administrador recibe 403). Un gasto ajeno o eliminado responde 404 (RNF-09).
+- Solo se aceptan categorías del propio usuario.
+
 ## [EDT 3.2] Acceso, administración e interfaz base — 26/10/2026
 
 ### Agregado

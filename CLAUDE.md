@@ -49,14 +49,21 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
 
 ## Convenciones del código (establecidas en EDT 3.1 y 3.2)
 
-- **Servicios** en `app/services/<nombre>.py` como funciones. Los errores de negocio se lanzan con un mensaje para el usuario y el campo que los causó (`ErrorUsuario(mensaje, campo=...)`). El servicio hace el `commit`.
+- **Servicios** en `app/services/<nombre>.py` como funciones. El servicio hace el `commit`. Los errores de negocio llevan mensajes para el usuario:
+  - con un solo campo: `ErrorUsuario(mensaje, campo=...)`;
+  - con varios campos a la vez: `ErrorValidacion(errores)`, como en `gasto.py`.
+  Los formularios Flask-WTF solo recogen datos y el token CSRF; la validación de negocio vive en el servicio.
 - **Auditoría**: `auditoria.registrar(accion, entidad, ...)` agrega el evento sin hacer commit, para que se guarde junto con la operación. Nunca incluir contraseñas.
 - **Acceso**: todas las rutas exigen sesión mediante el `before_request` global (`app/seguridad.py`). Los blueprints de microemprendedor usan `@bp.before_request` con `rol_requerido(ROL_MICROEMPRENDEDOR)`. Los datos propios se obtienen con `obtener_propio_o_404`.
 - **Navegación**: un ítem del menú aparece solo cuando su endpoint existe. Endpoints previstos: `gastos.listar`, `gastos.nuevo` (también activa el FAB), `presupuesto.ver`, `categorias.listar`, `reportes.inicio` (`app/interfaz.py`).
 - **Plantillas**: `base.html` (con sesión) y `base_publica.html` (sin sesión). Macros en `componentes/ui.html` y `componentes/formularios.html`.
 - **Sin estilos ni scripts en línea** (CSP `'self'`). Los colores y anchos variables van en `data-cg-color`, `data-cg-color-texto` y `data-cg-ancho`, que aplica `static/js/app.js`. Una prueba revisa todas las plantillas.
 - **Tablas**: usar `cg-tabla cg-tabla-apilable` con `data-etiqueta` en cada celda. Por debajo de 1200 px las filas se apilan como tarjetas (RNF-04).
-- **Pruebas**: fixtures `sesion`, `cliente`, `crear_usuario`, `crear_admin` e `iniciar_sesion` (`tests/conftest.py`). Datos con el prefijo `PRUEBA`. La base de pruebas se borra y se recrea con la migración.
+- **Pruebas**:
+  - fixtures en `tests/conftest.py`: `sesion`, `cliente`, `crear_usuario`, `crear_admin`, `crear_microemprendedor` (con sus categorías), `cargar_gastos`, `id_categoria` e `iniciar_sesion`;
+  - los datos de verificación de la sección 9 están en `tests/datos_verificacion.py`; úsalos también en la EDT 3.5;
+  - datos con el prefijo `PRUEBA`; la base de pruebas se borra y se recrea con la migración.
+- **Listados**: una consulta para la página, otra para los agregados y otra para los totales por día (sin N+1). Siempre se filtra por `usuario_id` y `eliminado = FALSE`.
 - **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
 
 ## Entorno local (Windows)
