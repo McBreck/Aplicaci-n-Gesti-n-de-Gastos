@@ -20,6 +20,8 @@ NAVEGACION_ADMINISTRADOR = (
     ("Mi cuenta", "bi-person-circle", "auth.cuenta"),
 )
 ENDPOINT_REGISTRAR_GASTO = "gastos.nuevo"
+# En el propio formulario del gasto el FAB sobra y taparía el botón Guardar
+ENDPOINTS_SIN_FAB = {"gastos.nuevo", "gastos.editar"}
 
 ERRORES = {
     400: ("Solicitud no válida", "No pudimos procesar lo que enviaste. Revisa los datos y vuelve a intentarlo."),
@@ -64,7 +66,11 @@ def _contexto_comun() -> dict:
         return {}
     es_admin = current_user.es_administrador
     items = NAVEGACION_ADMINISTRADOR if es_admin else NAVEGACION_MICROEMPRENDEDOR
-    puede_registrar = not es_admin and ENDPOINT_REGISTRAR_GASTO in current_app.view_functions
+    puede_registrar = (
+        not es_admin
+        and ENDPOINT_REGISTRAR_GASTO in current_app.view_functions
+        and request.endpoint not in ENDPOINTS_SIN_FAB
+    )
     return {
         "navegacion": _construir_navegacion(items),
         "url_inicio": url_inicio(current_user),

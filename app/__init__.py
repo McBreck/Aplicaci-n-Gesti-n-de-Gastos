@@ -120,6 +120,7 @@ def _registrar_filtros(app: Flask) -> None:
     app.add_template_filter(formato.fecha_hora, "fecha_hora")
     app.add_template_filter(formato.fecha_corta, "fecha_corta")
     app.add_template_filter(formato.mes_anio, "mes_anio")
+    app.add_template_filter(formato.porcentaje, "porcentaje")
     app.add_template_filter(formato.color_texto, "color_texto")
 
 

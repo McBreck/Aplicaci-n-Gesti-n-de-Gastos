@@ -83,6 +83,19 @@
     });
   }
 
+  /* Contador de caracteres: data-cg-contador="id-del-contador" en el campo */
+  function iniciarContadores() {
+    document.querySelectorAll("[data-cg-contador]").forEach(function (campo) {
+      const contador = document.getElementById(campo.dataset.cgContador);
+      const maximo = campo.getAttribute("maxlength");
+      function actualizar() {
+        contador.textContent = campo.value.length + "/" + maximo;
+      }
+      campo.addEventListener("input", actualizar);
+      actualizar();
+    });
+  }
+
   function iniciarCopiar() {
     document.querySelectorAll("[data-cg-copiar]").forEach(function (boton) {
       boton.addEventListener("click", function () {
@@ -103,6 +116,7 @@
     iniciarTooltipsCompactos();
     iniciarAlternarContrasena();
     iniciarModalConfirmacion();
+    iniciarContadores();
     iniciarCopiar();
   });
 

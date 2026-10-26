@@ -1,0 +1,43 @@
+{#- Componente `registro_rapido` (sección 11, P-02 punto 1): monto grande, categoría,
+    "¿En qué gastaste?", método de pago y fecha, con el botón circular "+" para guardar.
+    Envía a gastos.nuevo; si hay errores se muestran en el formulario completo (P-03). -#}
+{% macro registro_rapido(categorias, metodos, hoy, accion) -%}
+<form class="cg-tarjeta cg-registro-rapido" method="post" action="{{ accion }}" novalidate aria-label="Registro rápido de gasto">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="cg-registro-rapido__monto">
+    <label class="visually-hidden" for="rapido-monto">Monto en soles</label>
+    <span class="cg-registro-rapido__moneda" aria-hidden="true">S/</span>
+    <input class="cg-registro-rapido__entrada cg-numero" id="rapido-monto" name="monto" inputmode="decimal"
+           autocomplete="off" placeholder="0.00" required>
+  </div>
+  <div class="cg-registro-rapido__campos">
+    <div>
+      <label class="visually-hidden" for="rapido-categoria">Categoría</label>
+      <select class="form-select" id="rapido-categoria" name="categoria_id">
+        <option value="">Categoría</option>
+        {% for categoria in categorias %}<option value="{{ categoria.id }}">{{ categoria.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="cg-registro-rapido__descripcion">
+      <label class="visually-hidden" for="rapido-descripcion">¿En qué gastaste?</label>
+      <input class="form-control" id="rapido-descripcion" name="descripcion" maxlength="255"
+             placeholder="¿En qué gastaste?" autocomplete="off">
+    </div>
+    <div>
+      <label class="visually-hidden" for="rapido-metodo">Método de pago</label>
+      <select class="form-select" id="rapido-metodo" name="metodo_pago_id">
+        <option value="">Método de pago</option>
+        {% for metodo in metodos %}<option value="{{ metodo.id }}">{{ metodo.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="visually-hidden" for="rapido-fecha">Fecha</label>
+      <input class="form-control" type="date" id="rapido-fecha" name="fecha"
+             value="{{ hoy.isoformat() }}" max="{{ hoy.isoformat() }}" required>
+    </div>
+  </div>
+  <button class="cg-registro-rapido__guardar" type="submit" aria-label="Guardar gasto">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+  </button>
+</form>
+{%- endmacro %}

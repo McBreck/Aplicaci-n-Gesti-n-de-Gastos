@@ -1,0 +1,62 @@
+{#- Componente `filtros_gastos` (P-04): fechas, categoría, método, estado y búsqueda.
+    En el celular se pliega en el botón "Filtros". -#}
+{% macro filtros_gastos(filtros, categorias, metodos) -%}
+{% set adicionales = filtros.cantidad_adicionales() %}
+<section class="cg-tarjeta cg-filtros" aria-label="Filtros de gastos">
+  <button class="btn btn-cg-secundario cg-filtros__alternar d-md-none" type="button" data-bs-toggle="collapse"
+          data-bs-target="#filtrosGastos" aria-expanded="false" aria-controls="filtrosGastos">
+    <i class="bi bi-funnel" aria-hidden="true"></i>Filtros
+    {% if adicionales %}<span class="cg-filtros__cantidad">{{ adicionales }}</span>{% endif %}
+  </button>
+  <div class="collapse d-md-block" id="filtrosGastos">
+    <form class="cg-filtros__formulario" method="get" action="{{ url_for('gastos.listar') }}" role="search">
+      <div>
+        <label class="form-label" for="filtro-desde">Desde</label>
+        <input class="form-control" type="date" id="filtro-desde" name="desde" value="{{ filtros.desde.isoformat() if filtros.desde else '' }}">
+      </div>
+      <div>
+        <label class="form-label" for="filtro-hasta">Hasta</label>
+        <input class="form-control" type="date" id="filtro-hasta" name="hasta" value="{{ filtros.hasta.isoformat() if filtros.hasta else '' }}">
+      </div>
+      <div>
+        <label class="form-label" for="filtro-categoria">Categoría</label>
+        <select class="form-select" id="filtro-categoria" name="categoria">
+          <option value="">Todas las categorías</option>
+          <option value="sin" {% if filtros.categoria == 'sin' %}selected{% endif %}>Sin categoría</option>
+          {% for categoria in categorias %}
+          <option value="{{ categoria.id }}" {% if filtros.categoria == categoria.id|string %}selected{% endif %}>
+            {{ categoria.nombre }}{% if not categoria.activa %} (inactiva){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label" for="filtro-metodo">Método de pago</label>
+        <select class="form-select" id="filtro-metodo" name="metodo">
+          <option value="">Todos los métodos</option>
+          <option value="sin" {% if filtros.metodo == 'sin' %}selected{% endif %}>Sin registrar</option>
+          {% for metodo in metodos %}
+          <option value="{{ metodo.id }}" {% if filtros.metodo == metodo.id|string %}selected{% endif %}>{{ metodo.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label" for="filtro-estado">Estado</label>
+        <select class="form-select" id="filtro-estado" name="estado">
+          <option value="">Todos</option>
+          <option value="completo" {% if filtros.estado == 'completo' %}selected{% endif %}>Completo</option>
+          <option value="incompleto" {% if filtros.estado == 'incompleto' %}selected{% endif %}>Incompleto</option>
+        </select>
+      </div>
+      <div class="cg-filtros__busqueda">
+        <label class="form-label" for="filtro-q">Buscar en la descripción</label>
+        <input class="form-control" type="search" id="filtro-q" name="q" value="{{ filtros.q }}" maxlength="100" placeholder="Por ejemplo: harina">
+      </div>
+      <div class="cg-filtros__botones">
+        <button class="btn btn-cg" type="submit">Aplicar filtros</button>
+        <a class="btn btn-cg-secundario" href="{{ url_for('gastos.listar') }}">Limpiar filtros</a>
+      </div>
+    </form>
+  </div>
+</section>
+{%- endmacro %}

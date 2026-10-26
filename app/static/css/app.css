@@ -516,11 +516,13 @@ h1, h2, h3 { color: var(--cg-texto); }
   background: var(--cg-color, #CBD5E1);
 }
 
+/* inline-block (no flex) para que el recorte con "…" funcione también dentro de un flex */
 .cg-pildora {
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
+  min-width: 0;
   max-width: 100%;
   padding: 2px 10px;
+  vertical-align: middle;
   border-radius: 999px;
   background: var(--cg-color, #CBD5E1);
   color: var(--cg-color-texto, #111827);
@@ -724,6 +726,308 @@ h1, h2, h3 { color: var(--cg-texto); }
   color: var(--cg-texto);
   font-size: 20px;
   letter-spacing: .08em;
+}
+
+/* --- Disposición -------------------------------------------------------------- */
+.cg-pila { display: flex; flex-direction: column; gap: 16px; }
+.cg-columna-gasto { max-width: 760px; }
+
+/* --- Registro rápido (P-02, punto 1) ----------------------------------------- */
+.cg-registro-rapido {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.cg-registro-rapido__monto { display: flex; flex: none; align-items: baseline; gap: 6px; }
+.cg-registro-rapido__moneda { color: var(--cg-texto-2); font-size: 20px; font-weight: 500; }
+
+.cg-registro-rapido__entrada {
+  width: 140px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--cg-texto);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.cg-registro-rapido__entrada::placeholder { color: #D1D5DB; }
+/* El foco se indica con la línea inferior */
+.cg-registro-rapido__entrada:focus { outline: none; border-bottom-color: var(--cg-accion); }
+
+.cg-registro-rapido__campos {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.cg-registro-rapido__guardar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--cg-accion);
+  color: #fff;
+  font-size: 24px;
+}
+
+.cg-registro-rapido__guardar:hover { background: #1F2937; }
+
+@media (max-width: 1199.98px) {
+  .cg-registro-rapido { flex-wrap: wrap; }
+  .cg-registro-rapido__monto { flex: 1; }
+  .cg-registro-rapido__entrada { width: 100%; }
+  .cg-registro-rapido__campos { flex-basis: 100%; order: 3; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 575.98px) {
+  .cg-registro-rapido { padding: 16px; }
+  .cg-registro-rapido__campos { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Formulario del gasto (P-03) ----------------------------------------------- */
+.cg-monto-grande {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  border: 2px solid transparent;
+  border-radius: var(--cg-radio-tarjeta);
+  background: var(--cg-campo);
+}
+
+.cg-monto-grande:focus-within { border-color: var(--cg-accion); }
+.cg-monto-grande.is-invalid { border-color: var(--cg-peligro); }
+.cg-monto-grande__moneda { color: var(--cg-texto-2); font-size: 24px; font-weight: 500; }
+
+.cg-monto-grande__entrada {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--cg-texto);
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.cg-monto-grande__entrada::placeholder { color: #D1D5DB; }
+/* El foco se indica con el borde del contenedor */
+.cg-monto-grande__entrada:focus { outline: none; }
+
+.cg-grupo-campo { min-width: 0; margin: 0 0 16px; padding: 0; border: 0; }
+
+.cg-grupo-campo__titulo {
+  float: none;
+  width: auto;
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cg-campo__pie { display: flex; justify-content: space-between; gap: 12px; }
+
+/* Campo vacío al editar: se resalta en ámbar con "Falta completar" */
+.cg-falta {
+  padding: 12px;
+  border: 1px solid #FDE68A;
+  border-radius: var(--cg-radio-tarjeta);
+  background: #FFFBEB;
+}
+
+.cg-falta__etiqueta { margin-left: 6px; vertical-align: middle; }
+
+/* Opciones como botones grandes (categorías y métodos de pago) */
+.cg-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
+  gap: 8px;
+}
+
+.cg-opciones--metodos { grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr)); }
+.cg-opcion { position: relative; }
+.cg-opcion__entrada { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+.cg-opcion__boton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  min-height: 52px;
+  margin: 0;
+  padding: 10px 30px 10px 12px;
+  border: 2px solid var(--cg-borde);
+  border-radius: var(--cg-radio-tarjeta);
+  background: var(--cg-superficie);
+  color: var(--cg-texto);
+  font-weight: 500;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.cg-opcion__boton:hover { border-color: #9CA3AF; }
+.cg-opcion__boton > .bi:first-child { font-size: 18px; }
+/* La marca ✓ no ocupa espacio del texto */
+.cg-opcion__marca {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  font-size: 16px;
+  visibility: hidden;
+  transform: translateY(-50%);
+}
+
+/* Métodos de pago: ícono arriba y texto abajo, para que "Transferencia" quepa en el celular */
+.cg-opciones--metodos .cg-opcion__boton {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.cg-opciones--metodos .cg-opcion__marca { top: 6px; right: 6px; transform: none; }
+.cg-opcion__entrada:checked + .cg-opcion__boton { border-color: var(--cg-accion); background: var(--cg-campo); }
+
+.cg-opcion__entrada:checked + .cg-opcion__boton--categoria {
+  background: var(--cg-color, var(--cg-campo));
+  color: var(--cg-color-texto, var(--cg-texto));
+}
+
+.cg-opcion__entrada:checked + .cg-opcion__boton--categoria .cg-punto { box-shadow: 0 0 0 2px #fff; }
+.cg-opcion__entrada:checked + .cg-opcion__boton .cg-opcion__marca { visibility: visible; }
+.cg-opcion__entrada:focus-visible + .cg-opcion__boton { outline: 2px solid var(--cg-accion); outline-offset: 2px; }
+
+.cg-boton-peligro-suave { --bs-btn-color: var(--cg-excedida-texto); --bs-btn-hover-color: var(--cg-excedida-texto); }
+
+/* --- Mis gastos (P-04) ------------------------------------------------------------ */
+.cg-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.cg-filtros { margin-bottom: 16px; padding: 16px 20px; }
+
+.cg-filtros__formulario {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.cg-filtros .form-label { margin-bottom: 4px; color: var(--cg-texto-2); font-size: 12px; }
+.cg-filtros__botones { display: flex; flex-wrap: wrap; gap: 8px; grid-column: 1 / -1; }
+
+.cg-filtros__cantidad {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--cg-accion);
+  color: #fff;
+  font-size: 12px;
+}
+
+@media (min-width: 1200px) {
+  .cg-filtros__busqueda { grid-column: span 2; }
+}
+
+@media (max-width: 767.98px) {
+  .cg-filtros { padding: 12px; }
+  .cg-filtros__formulario { margin-top: 12px; }
+}
+
+/* --- Componente actividad (lista agrupada por fecha) ------------------------------- */
+.cg-actividad { display: flex; flex-direction: column; gap: 20px; }
+
+.cg-actividad__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--cg-borde);
+}
+
+.cg-actividad__titulo { margin: 0; color: var(--cg-texto-2); font-size: 13px; font-weight: 600; }
+.cg-actividad__total { font-size: 13px; font-weight: 600; }
+
+.cg-actividad__lista,
+.cg-actividad__sublista { margin: 0; padding: 0; list-style: none; }
+
+.cg-actividad__sublista { margin-left: 8px; padding-left: 12px; border-left: 2px solid var(--cg-borde); }
+
+.cg-actividad__fila,
+.cg-actividad__grupo { border-bottom: 1px solid var(--cg-campo); }
+
+.cg-actividad__fila:last-child,
+.cg-actividad__grupo:last-child { border-bottom: 0; }
+
+.cg-actividad__fila { display: flex; align-items: center; gap: 8px; }
+
+.cg-actividad__enlace,
+.cg-actividad__expandir {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "categoria descripcion estado monto";
+  align-items: center;
+  gap: 4px 12px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px 6px;
+  border-radius: var(--cg-radio-campo);
+  color: inherit;
+  text-decoration: none;
+}
+
+.cg-actividad__expandir {
+  width: 100%;
+  grid-template-areas: "categoria descripcion monto icono";
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.cg-actividad__enlace:hover,
+.cg-actividad__expandir:hover { background: var(--cg-fondo); color: inherit; }
+
+.cg-actividad__categoria { display: flex; grid-area: categoria; min-width: 0; max-width: 220px; }
+.cg-actividad__descripcion { grid-area: descripcion; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cg-actividad__descripcion--vacia { color: var(--cg-texto-2); font-style: italic; }
+.cg-actividad__estado { grid-area: estado; }
+.cg-actividad__monto { grid-area: monto; font-weight: 600; text-align: right; white-space: nowrap; }
+.cg-actividad__icono { grid-area: icono; transition: transform .15s ease; }
+.cg-actividad__expandir[aria-expanded="true"] .cg-actividad__icono { transform: rotate(45deg); }
+
+.cg-actividad__eliminar { flex: none; --bs-btn-border-color: transparent; --bs-btn-color: var(--cg-texto-2); }
+
+@media (max-width: 575.98px) {
+  .cg-actividad__enlace {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "descripcion monto" "categoria estado";
+  }
+
+  .cg-actividad__expandir {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "descripcion monto icono" "categoria categoria categoria";
+  }
+
+  .cg-actividad__estado { justify-self: end; }
+  .cg-actividad__categoria { max-width: 100%; }
 }
 
 /* --- Movimiento reducido ------------------------------------------------------ */

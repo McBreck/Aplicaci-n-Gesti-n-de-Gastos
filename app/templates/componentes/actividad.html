@@ -1,0 +1,68 @@
+{#- Componente `actividad` (sección 11): gastos agrupados por fecha ("Hoy", "Ayer", "mié, 21 oct")
+    con el total del día. Recibe la lista de DiaActividad de GastoService.agrupar_actividad.
+    Cada fila abre la edición; con acciones=true agrega el botón Eliminar (modal de confirmación).
+    url_retorno: página a la que se vuelve después de eliminar. -#}
+{% from "componentes/ui.html" import pildora_categoria, chip_estado %}
+
+{% macro _pildora(categoria) -%}
+{% if categoria %}{{ pildora_categoria(categoria.nombre, categoria.color) }}{% else %}{{ pildora_categoria("Sin categoría", "#E5E7EB") }}{% endif %}
+{%- endmacro %}
+
+{% macro _fila_gasto(gasto, acciones, url_retorno) -%}
+<li class="cg-actividad__fila" data-cg-gasto="{{ gasto.id }}">
+  <a class="cg-actividad__enlace" href="{{ url_for('gastos.editar', id_gasto=gasto.id, next=url_retorno) if url_retorno else url_for('gastos.editar', id_gasto=gasto.id) }}">
+    <span class="cg-actividad__categoria">{{ _pildora(gasto.categoria) }}</span>
+    {% if gasto.descripcion %}
+    <span class="cg-actividad__descripcion">{{ gasto.descripcion }}</span>
+    {% else %}
+    <span class="cg-actividad__descripcion cg-actividad__descripcion--vacia">Sin descripción</span>
+    {% endif %}
+    {% if not gasto.es_completo %}<span class="cg-actividad__estado">{{ chip_estado("Incompleto") }}</span>{% endif %}
+    <span class="cg-actividad__monto cg-numero">{{ gasto.monto|soles }}</span>
+  </a>
+  {% if acciones %}
+  <button type="button" class="btn btn-cg-secundario btn-cg-icono cg-actividad__eliminar"
+          data-bs-toggle="modal" data-bs-target="#modalConfirmacion"
+          data-cg-accion="{{ url_for('gastos.eliminar', id_gasto=gasto.id, next=url_retorno) }}"
+          data-cg-titulo="Eliminar gasto"
+          data-cg-mensaje="Se eliminará el gasto del {{ gasto.fecha|fecha }} por {{ gasto.monto|soles }}{% if gasto.descripcion %} ({{ gasto.descripcion }}){% endif %}. Dejará de aparecer en tus listados, reportes y gráficos."
+          data-cg-boton="Eliminar" data-cg-peligro
+          aria-label="Eliminar el gasto del {{ gasto.fecha|fecha }} por {{ gasto.monto|soles }}">
+    <i class="bi bi-trash3" aria-hidden="true"></i>
+  </button>
+  {% endif %}
+</li>
+{%- endmacro %}
+
+{% macro actividad(dias, acciones=false, url_retorno=none) -%}
+<div class="cg-actividad">
+  {% for dia in dias %}
+  <section class="cg-actividad__dia" aria-labelledby="dia-{{ dia.fecha.isoformat() }}">
+    <header class="cg-actividad__cabecera">
+      <h3 class="cg-actividad__titulo" id="dia-{{ dia.fecha.isoformat() }}">{{ dia.etiqueta }}</h3>
+      <span class="cg-actividad__total cg-numero">{{ dia.total|soles }}</span>
+    </header>
+    <ul class="cg-actividad__lista">
+      {% for fila in dia.filas %}
+      {% if fila.es_grupo %}
+      <li class="cg-actividad__grupo">
+        <button class="cg-actividad__expandir" type="button" data-bs-toggle="collapse"
+                data-bs-target="#{{ fila.clave }}" aria-expanded="false" aria-controls="{{ fila.clave }}">
+          <span class="cg-actividad__categoria">{{ _pildora(fila.categoria) }}</span>
+          <span class="cg-actividad__descripcion">{{ fila.gastos|length }} registros</span>
+          <span class="cg-actividad__monto cg-numero">{{ fila.total|soles }}</span>
+          <i class="bi bi-plus-lg cg-actividad__icono" aria-hidden="true"></i>
+        </button>
+        <ul class="collapse cg-actividad__sublista" id="{{ fila.clave }}">
+          {% for gasto in fila.gastos %}{{ _fila_gasto(gasto, acciones, url_retorno) }}{% endfor %}
+        </ul>
+      </li>
+      {% else %}
+      {{ _fila_gasto(fila.gasto, acciones, url_retorno) }}
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</div>
+{%- endmacro %}

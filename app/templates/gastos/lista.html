@@ -1,0 +1,45 @@
+{#- P-04 Mis gastos: resumen del resultado, filtros y actividad agrupada por fecha -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta, kpi, estado_vacio, paginacion %}
+{% from "componentes/actividad.html" import actividad %}
+{% from "componentes/filtros_gastos.html" import filtros_gastos %}
+{% from "componentes/formularios.html" import aviso %}
+
+{% block titulo %}Mis gastos{% endblock %}
+
+{#- En el celular no se muestra: el FAB "+" ya está siempre visible -#}
+{% block acciones_cabecera %}
+<a class="btn btn-cg d-none d-sm-inline-flex" href="{{ url_for('gastos.nuevo') }}">
+  <i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar gasto
+</a>
+{% endblock %}
+
+{% block contenido %}
+{% set resumen = resultado.resumen %}
+<div class="cg-resumen">
+  {{ kpi("Total del resultado", resumen.total|soles,
+         "1 gasto" if resumen.cantidad == 1 else resumen.cantidad ~ " gastos", "bi-receipt") }}
+  {% if resumen.cantidad == 0 %}
+    {% set detalle_completitud = "Sin registros en este resultado" %}
+  {% elif resumen.campo_mas_omitido %}
+    {% set detalle_completitud = "Dato más omitido: " ~ resumen.campo_mas_omitido %}
+  {% else %}
+    {% set detalle_completitud = "Todos los registros están completos" %}
+  {% endif %}
+  {{ kpi("Registros completos", resumen.porcentaje_completitud|porcentaje, detalle_completitud, "bi-check2-square") }}
+</div>
+
+{{ filtros_gastos(filtros, categorias, metodos) }}
+{% for texto in avisos %}{{ aviso(texto, "aviso") }}{% endfor %}
+
+{% call tarjeta() %}
+{% if resumen.cantidad %}
+  {{ actividad(dias, acciones=true, url_retorno=request.full_path) }}
+  {{ paginacion(resultado.pagina, resultado.total_paginas, "gastos.listar", filtros.como_argumentos()) }}
+{% elif por_defecto %}
+  {{ estado_vacio("bi-receipt", "Aún no registras gastos este mes.", url_for('gastos.nuevo'), "Registrar gasto") }}
+{% else %}
+  {{ estado_vacio("bi-funnel", "No hay gastos con estos filtros", url_for('gastos.listar'), "Limpiar filtros") }}
+{% endif %}
+{% endcall %}
+{% endblock %}
