@@ -67,6 +67,11 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
 - **Presupuesto**: `presupuesto.comparar(usuario_id, mes)` es la única fuente de lo planificado y lo ejecutado por categoría (A7), de A9 y de las alertas. La usan P-05, el widget, la lista de categorías de la barra lateral y el badge.
   - La barra lateral la pide al dibujarse y la guarda en `g` una vez por petición (`app/interfaz.py`).
   - En la EDT 3.5, A7 y A9 sobre el DataFrame deben dar los mismos valores.
+- **Analítica (EDT 3.5)**:
+  - `analitica.construir_dataframe()` es la única consulta de gastos para el análisis; las métricas A1–A9 y S1 son funciones puras sobre el DataFrame;
+  - `analitica.analizar_mes(usuario_id, mes, hoy)` reúne todo para el dashboard (P1 y R1–R7 incluidos) y recibe `hoy` como parámetro para que las pruebas no dependan del reloj;
+  - las pruebas comprueban que A8 coincide con `gasto.resumir` y que A7/A9 coinciden con `presupuesto.comparar`.
+- **Redondeo**: todo porcentaje pasa por `calculo.porcentaje_de` (decimal, "mitad hacia arriba", 1 decimal) y todo monto agregado por `calculo.a_soles`. Nunca uses `round()` directo para porcentajes que se muestran.
 - **Utilidades compartidas**:
   - `services/validacion.py`: `interpretar_monto` (con `permitir_cero`) y `ErrorValidacion`;
   - `services/periodo.py`: `interpretar_mes(?mes=AAAA-MM)`, mes anterior y siguiente, último día;
@@ -111,7 +116,16 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - en P-08, "Desactivar" y "Restablecer" van en el menú "Más acciones";
   - los filtros de gastos incluyen "Sin categoría" y "Sin registrar";
   - la búsqueda no distingue tildes ni mayúsculas;
-  - si "Desde" es posterior a "Hasta", las fechas se intercambian con un aviso.
+  - si "Desde" es posterior a "Hasta", las fechas se intercambian con un aviso;
+  - "Copiar del mes anterior" reemplaza solo las categorías que coinciden, conserva las demás y no copia categorías inactivas;
+  - los gastos sin categoría no cuentan en A9 (P-05 lo aclara con una nota);
+  - el presupuesto se edita entre 2026-01 y 2100-12; los demás meses son de solo lectura;
+  - cada categoría de la barra lateral abre Mis gastos filtrado por ella.
+- **Recomendaciones (EDT 3.5)**:
+  - R2 muestra el exceso en soles y en % sobre lo planificado ("en S/ 30.30 (5.8 %)");
+  - R3 y R6 solo aplican al mes en curso;
+  - "Sin categoría" no genera R5 ni R7;
+  - en empates gana la prioridad, luego el orden de la tabla (R5 antes que R7) y luego el valor más alto.
 - **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
 
 ## Entorno local (Windows)

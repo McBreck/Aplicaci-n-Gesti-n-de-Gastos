@@ -4,6 +4,24 @@ Todos los cambios relevantes de ControlGastos se registran en este archivo, agru
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Secciones por entrada: **Agregado**, **Cambiado**, **Corregido**, **Eliminado**, **Seguridad**.
 
+## [EDT 3.5] Analítica, proyección y recomendaciones — 26/10/2026
+
+### Agregado
+- `AnaliticaService` (RF-15, RF-16):
+  - un DataFrame por consulta parametrizada: gastos vigentes del usuario unidos con categoría y método, con "Sin categoría" y "Sin registrar";
+  - métricas como funciones puras: A1 total, A2 variación frente al mes anterior a la misma fecha, A3 por categoría (la suma da A1), A4 por método de pago, A5 evolución diaria y acumulada, A6 evolución de seis meses, A7 ejecución presupuestaria, A8 completitud, A9 presupuesto usado y S1 gasto semanal apilado.
+- `ProyeccionService` (P1, RF-17, RN-07): regresión lineal del acumulado con `numpy.polyfit`, solo con al menos 7 días con registros y 10 registros; si no, "Datos insuficientes para proyectar".
+- `RecomendacionService` (RF-18, RN-08):
+  - reglas R1 a R7 con su prioridad, mensaje y enlace de acción;
+  - como máximo tres;
+  - lista vacía = "Tus gastos están bajo control este mes".
+- `analizar_mes()`: todas las métricas, la proyección y las recomendaciones de un mes con dos consultas (seis meses de gastos y el presupuesto del mes), para el dashboard de la EDT 3.6.
+- `calculo.py`: montos en soles y porcentajes con redondeo "mitad hacia arriba", compartidos por el listado, el presupuesto y la analítica.
+- Pruebas con todos los valores de verificación de la sección 9, por ejemplo b1 = 156.2955, b0 = 27.8672 y P = S/ 4,873.03 con R3 por S/ 73.03.
+
+### Cambiado
+- Los porcentajes de completitud (A8) y de ejecución presupuestaria usan el redondeo compartido de `calculo.py`.
+
 ## [EDT 3.4] Categorías, presupuesto y alertas — 26/10/2026
 
 ### Agregado
