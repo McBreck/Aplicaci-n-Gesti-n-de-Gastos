@@ -61,10 +61,11 @@ Tecnología principal: Flask 3, SQLAlchemy 2, Alembic (Flask-Migrate), psycopg 3
    flask db upgrade
    flask crear-admin
    ```
-7. Inicia el servidor de desarrollo y abre http://127.0.0.1:5000/salud (debe responder `{"estado": "ok"}`):
+7. Inicia el servidor de desarrollo y abre http://127.0.0.1:5000. Ingresa con la cuenta de administrador y crea las cuentas de los microemprendedores desde **Usuarios**:
    ```powershell
    flask run --debug
    ```
+   Sin `--debug`, Flask guarda las plantillas en caché y no verás los cambios hasta reiniciar el servidor.
 
 ## Comandos
 

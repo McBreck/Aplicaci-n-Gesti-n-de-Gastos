@@ -4,6 +4,38 @@ Todos los cambios relevantes de ControlGastos se registran en este archivo, agru
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Secciones por entrada: **Agregado**, **Cambiado**, **Corregido**, **Eliminado**, **Seguridad**.
 
+## [EDT 3.2] Acceso, administración e interfaz base — 26/10/2026
+
+### Agregado
+- Sistema de diseño de la sección 11 (cambio CR-01):
+  - tokens CSS sobre Bootstrap e Inter local;
+  - barra lateral de 260 px, compacta (72 px, con tooltips) en tableta y *offcanvas* en celular;
+  - cabecera con avatar y menú de usuario, toasts con botón de acción opcional, FAB y modal de confirmación.
+- Macros reutilizables: `tarjeta`, `kpi`, `chip_estado`, `punto_color`, `pildora_categoria`, `barra_presupuesto`, `estado_vacio`, `modal_confirmacion`, `paginacion`, más campos de formulario accesibles.
+- P-01 Inicio de sesión (RF-01, CU-01) con mostrar/ocultar contraseña y los flujos alternos 4b (bloqueo) y 4c (cuenta desactivada).
+- Cierre de sesión manual por POST y automático tras 30 minutos sin actividad (RF-02, CU-02).
+- P-09 Mi cuenta y cambio de contraseña con la política visible (RF-03, CU-03).
+- P-08 Administración de usuarios (RF-04, CU-04):
+  - alta con contraseña temporal y copia de las 9 categorías predeterminadas (RN-11);
+  - edición, activación y desactivación;
+  - restablecimiento con contraseña temporal mostrada una sola vez;
+  - correo duplicado → 409.
+- `AuthService`, `UsuarioService` y `AuditoriaService`. Bitácora de INICIO_SESION, CIERRE_SESION, LOGIN_FALLIDO, CREAR, MODIFICAR, ACTIVAR, DESACTIVAR y RESTABLECER, con IP (RNF-12).
+- Páginas de error 400, 403, 404, 405, 429 y 500 con el diseño de la app y sin trazas.
+- Página de inicio provisional del microemprendedor (el dashboard completo llega en la EDT 3.6).
+- Filtro `fecha_hora` (dd/mm/aaaa HH:MM en hora de Lima).
+- Registro del cambio `docs/cambios/CR-01_diseno_interfaz.md`.
+
+### Seguridad
+- Sesión obligatoria en todas las rutas salvo `/login` y `/salud`, mediante un guardián global (A01).
+- `rol_requerido`: un microemprendedor recibe 403 en las rutas de administración.
+- `obtener_propio_o_404` para los datos de cada usuario (RNF-09).
+- Bloqueo de 15 minutos tras 5 intentos fallidos (RNF-11) y límite de 10 intentos de inicio de sesión por minuto e IP (A04).
+- Sesión regenerada al ingresar (evita la fijación de sesión); una cuenta desactivada pierde la sesión abierta.
+- `?next=` solo admite rutas internas.
+- Rehash Argon2id si cambian los parámetros. Un correo inexistente tarda lo mismo que uno real.
+- CSRF en todos los formularios y acciones POST (RNF-10). Las contraseñas nunca se registran en la bitácora.
+
 ## [EDT 3.1] Entorno, estructura y base de datos — 26/10/2026
 
 ### Agregado
