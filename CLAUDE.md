@@ -121,7 +121,10 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - los gastos sin categoría no cuentan en A9 (P-05 lo aclara con una nota);
   - el presupuesto se edita entre 2026-01 y 2100-12; los demás meses son de solo lectura;
   - cada categoría de la barra lateral abre Mis gastos filtrado por ella.
-- **Recomendaciones (EDT 3.5)**:
+
+## Criterios propuestos en la EDT 3.5 (pendientes de confirmación)
+
+- **Recomendaciones**:
   - R2 muestra el exceso en soles y en % sobre lo planificado ("en S/ 30.30 (5.8 %)");
   - R3 y R6 solo aplican al mes en curso;
   - "Sin categoría" no genera R5 ni R7;
