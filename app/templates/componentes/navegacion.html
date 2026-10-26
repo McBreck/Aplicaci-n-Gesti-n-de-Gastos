@@ -1,4 +1,11 @@
-{#- Contenido de la barra lateral; se usa en la barra fija (en_lateral) y en el offcanvas del celular -#}
+{#- Contenido de la barra lateral; se usa en la barra fija (en_lateral) y en el offcanvas del celular.
+    Para el microemprendedor agrega la lista de categorías con su monto del mes, el widget de
+    presupuesto y el badge de alertas (sección 11; RF-14). -#}
+{% from "componentes/ui.html" import barra_presupuesto, chip_estado %}
+{% set sufijo = "lateral" if en_lateral else "movil" %}
+{% set resumen = resumen_lateral() if resumen_lateral else none %}
+{% set alertas = resumen.alertas|length if resumen else 0 %}
+
 <a class="cg-marca" href="{{ url_inicio }}">
   <span class="cg-logo" aria-hidden="true">C</span>
   <span class="cg-marca__texto">ControlGastos</span>
@@ -13,9 +20,41 @@
          {% if en_lateral %}data-cg-tooltip-compacto data-bs-placement="right" data-bs-title="{{ item.texto }}"{% endif %}>
         <i class="bi {{ item.icono }} cg-nav__icono" aria-hidden="true"></i>
         <span class="cg-nav__texto">{{ item.texto }}</span>
-        {% if item.badge %}<span class="cg-nav__badge">{{ item.badge }}</span>{% endif %}
+        {% if item.endpoint == "presupuesto.ver" and alertas %}
+        <span class="cg-nav__badge">{{ alertas }}<span class="visually-hidden"> {{ "categoría en alerta o excedida" if alertas == 1 else "categorías en alerta o excedidas" }}</span></span>
+        {% endif %}
       </a>
     </li>
     {% endfor %}
   </ul>
 </nav>
+
+{% if resumen %}
+<section class="cg-lateral__seccion" aria-labelledby="categorias-{{ sufijo }}">
+  <h2 class="cg-lateral__titulo" id="categorias-{{ sufijo }}">Categorías</h2>
+  <ul class="cg-lateral__categorias">
+    {% for fila in resumen.filas if fila.categoria.activa %}
+    <li>
+      <a class="cg-lateral__categoria" href="{{ url_for('gastos.listar', categoria=fila.categoria.id) }}">
+        <span class="cg-punto" data-cg-color="{{ fila.categoria.color }}" aria-hidden="true"></span>
+        <span class="cg-lateral__categoria-nombre">{{ fila.categoria.nombre }}</span>
+        <span class="cg-lateral__categoria-monto cg-numero">{{ fila.ejecutado|soles }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="cg-widget" aria-labelledby="widget-presupuesto-{{ sufijo }}">
+  <h2 class="cg-widget__titulo" id="widget-presupuesto-{{ sufijo }}">Presupuesto de {{ resumen.mes|mes_anio }}</h2>
+  {% if resumen.tiene_presupuesto %}
+  <p class="cg-widget__texto">Has usado el {{ resumen.porcentaje_usado|porcentaje }}</p>
+  {{ barra_presupuesto(resumen.porcentaje_barra, resumen.estado_general) }}
+  <div>{{ chip_estado(resumen.estado_general) }}</div>
+  <a class="btn btn-cg-secundario" href="{{ url_for('presupuesto.ver') }}">Ver presupuesto</a>
+  {% else %}
+  <p class="cg-widget__texto">Aún no defines tu presupuesto</p>
+  <a class="btn btn-cg" href="{{ url_for('presupuesto.ver') }}">Definir presupuesto</a>
+  {% endif %}
+</section>
+{% endif %}

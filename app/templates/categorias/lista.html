@@ -1,0 +1,96 @@
+{#- P-06 Categorías (CU-09, RF-11) -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta %}
+
+{% macro error_de(clave, id) -%}
+{% if errores[clave] %}
+<div class="invalid-feedback d-block" id="{{ id }}">
+  <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ errores[clave] }}
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% block titulo %}Categorías{% endblock %}
+
+{% block contenido %}
+<div class="cg-rejilla cg-rejilla--categorias">
+  {% call tarjeta("Tus categorías") %}
+  <ul class="cg-lista-categorias">
+    {% for categoria in categorias %}
+    <li class="cg-categoria{% if not categoria.activa %} cg-categoria--inactiva{% endif %}">
+      <div class="cg-categoria__fila">
+        <span class="cg-punto" data-cg-color="{{ categoria.color }}" aria-hidden="true"></span>
+        <span class="cg-categoria__nombre">{{ categoria.nombre }}</span>
+        {% if categoria.predeterminada %}<span class="cg-etiqueta">Predeterminada</span>{% endif %}
+        <div class="cg-categoria__acciones">
+          {% if not categoria.predeterminada %}
+          <button class="btn btn-cg-secundario" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#renombrar-{{ categoria.id }}" aria-controls="renombrar-{{ categoria.id }}"
+                  aria-expanded="{{ 'true' if abierta == categoria.id else 'false' }}">Renombrar</button>
+          {% endif %}
+          <form method="post" action="{{ url_for('categorias.cambiar_estado', id_categoria=categoria.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="cg-interruptor" type="submit" role="switch"
+                    aria-checked="{{ 'true' if categoria.activa else 'false' }}"
+                    aria-label="{{ categoria.nombre }}: {{ 'activa, pulsa para desactivarla' if categoria.activa else 'inactiva, pulsa para activarla' }}">
+              <span class="cg-interruptor__pista" aria-hidden="true"></span>
+              <span class="cg-interruptor__texto" aria-hidden="true">{{ "Activa" if categoria.activa else "Inactiva" }}</span>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% if not categoria.predeterminada %}
+      <div class="collapse{% if abierta == categoria.id %} show{% endif %}" id="renombrar-{{ categoria.id }}">
+        <form class="cg-renombrar" method="post" action="{{ url_for('categorias.renombrar', id_categoria=categoria.id) }}" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="visually-hidden" for="nombre-{{ categoria.id }}">Nuevo nombre de {{ categoria.nombre }}</label>
+          <input class="form-control{% if errores[categoria.id] %} is-invalid{% endif %}" id="nombre-{{ categoria.id }}"
+                 name="nombre" maxlength="60" autocomplete="off"
+                 value="{{ nombre_propuesto if abierta == categoria.id and nombre_propuesto is not none else categoria.nombre }}"
+                 {% if errores[categoria.id] %}aria-invalid="true" aria-describedby="nombre-{{ categoria.id }}-error"{% endif %}>
+          <button class="btn btn-cg" type="submit">Guardar</button>
+        </form>
+        {{ error_de(categoria.id, "nombre-" ~ categoria.id ~ "-error") }}
+      </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="cg-texto-secundario cg-nota mb-0">
+    Una categoría inactiva no aparece al registrar gastos, pero tus gastos anteriores la conservan.
+    Las predeterminadas no se pueden renombrar.
+  </p>
+  {% endcall %}
+
+  {% call tarjeta("Nueva categoría", id="nueva-categoria") %}
+  <form method="post" action="{{ url_for('categorias.listar') }}" novalidate>
+    {{ form.csrf_token }}
+    <div class="cg-campo">
+      <label class="form-label" for="nombre">Nombre</label>
+      <input class="form-control{% if errores.nueva %} is-invalid{% endif %}" id="nombre" name="nombre" maxlength="60"
+             value="{{ form.nombre.data or '' }}" autocomplete="off" placeholder="Por ejemplo: Delivery"
+             aria-describedby="nombre-ayuda{% if errores.nueva %} nombre-error{% endif %}"
+             {% if errores.nueva %}aria-invalid="true"{% endif %}>
+      <div class="form-text" id="nombre-ayuda">Hasta 60 caracteres. No puede repetir el nombre de otra de tus categorías.</div>
+      {{ error_de("nueva", "nombre-error") }}
+    </div>
+    <fieldset class="cg-grupo-campo">
+      <legend class="cg-grupo-campo__titulo">Color</legend>
+      <div class="cg-muestras">
+        {% for color, nombre_color in paleta %}
+        <div class="cg-muestra">
+          <input class="cg-muestra__entrada" type="radio" name="color" id="color-{{ loop.index }}" value="{{ color }}"
+                 {% if (form.color.data or '')|upper == color %}checked{% endif %}>
+          <label class="cg-muestra__boton" for="color-{{ loop.index }}" data-cg-color="{{ color }}" title="{{ nombre_color }}">
+            <span class="visually-hidden">{{ nombre_color }}</span>
+            <i class="bi bi-check-lg" aria-hidden="true"></i>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <button class="btn btn-cg" type="submit"><i class="bi bi-plus-lg" aria-hidden="true"></i>Crear categoría</button>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}

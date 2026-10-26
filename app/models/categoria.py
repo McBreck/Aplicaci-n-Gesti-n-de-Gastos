@@ -7,6 +7,21 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.extensions import db
 
 COLOR_POR_DEFECTO = "#8B7BFF"
+LONGITUD_NOMBRE = 60
+
+# Paleta de categorías (sección 11.1, cambio CR-01): color y nombre para lectores de pantalla
+PALETA = (
+    ("#8B7BFF", "Morado"),
+    ("#FFD166", "Amarillo"),
+    ("#7EF0C0", "Verde menta"),
+    ("#93C5FD", "Azul"),
+    ("#F9A8D4", "Rosado"),
+    ("#FDBA74", "Naranja"),
+    ("#BEF264", "Verde lima"),
+    ("#67E8F9", "Celeste"),
+    ("#CBD5E1", "Gris"),
+    ("#C4B5FD", "Lila"),
+)
 
 
 class Categoria(db.Model):

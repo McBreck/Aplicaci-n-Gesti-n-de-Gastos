@@ -208,6 +208,49 @@ h1, h2, h3 { color: var(--cg-texto); }
   text-align: center;
 }
 
+/* Categorías con su monto del mes y widget de presupuesto (barra lateral) */
+.cg-lateral__seccion { display: flex; flex-direction: column; gap: 4px; }
+
+.cg-lateral__titulo {
+  margin: 0 0 4px;
+  padding: 0 12px;
+  color: var(--cg-texto-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cg-lateral__categorias { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+
+.cg-lateral__categoria {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--cg-radio-campo);
+  color: var(--cg-texto);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.cg-lateral__categoria:hover { background: var(--cg-campo); color: var(--cg-texto); }
+.cg-lateral__categoria-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cg-lateral__categoria-monto { color: var(--cg-texto-2); font-size: 12px; white-space: nowrap; }
+
+.cg-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  padding: 16px;
+  border: 1px solid var(--cg-borde);
+  border-radius: var(--cg-radio-tarjeta);
+  background: var(--cg-fondo);
+}
+
+.cg-widget__titulo { margin: 0; font-size: 14px; font-weight: 600; }
+.cg-widget__texto { margin: 0; color: var(--cg-texto-2); font-size: 13px; }
+
 .cg-offcanvas { --bs-offcanvas-width: 280px; }
 .cg-offcanvas .offcanvas-body { display: flex; flex-direction: column; gap: 24px; padding-top: 0; }
 
@@ -272,6 +315,9 @@ h1, h2, h3 { color: var(--cg-texto); }
   .cg-lateral .cg-nav__enlace { justify-content: center; width: 48px; padding: 0; }
   .cg-lateral .cg-nav__badge { position: absolute; top: 2px; right: 2px; min-width: 18px; padding: 0 5px; font-size: 11px; }
   .cg-lateral .cg-nav__enlace { position: relative; }
+  /* Con la barra compacta solo quedan los íconos */
+  .cg-lateral .cg-lateral__seccion,
+  .cg-lateral .cg-widget { display: none; }
   /* El texto queda disponible para lectores de pantalla */
   .cg-lateral .cg-nav__texto,
   .cg-lateral .cg-marca__texto {
@@ -1028,6 +1074,124 @@ h1, h2, h3 { color: var(--cg-texto); }
 
   .cg-actividad__estado { justify-self: end; }
   .cg-actividad__categoria { max-width: 100%; }
+}
+
+/* --- Selector de mes (cabecera) ------------------------------------------------ */
+.cg-selector-mes { display: flex; align-items: center; gap: 8px; }
+.cg-selector-mes__texto { min-width: 120px; font-weight: 600; text-align: center; white-space: nowrap; }
+.cg-selector-mes__hueco { width: 44px; }
+.cg-selector-mes--contenido { justify-content: space-between; margin-bottom: 16px; }
+
+/* --- KPI con barra y notas ---------------------------------------------------- */
+.cg-kpi__barra { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.cg-kpi__barra .cg-barra { flex: 1; }
+.cg-nota { margin: 12px 0 0; font-size: 13px; }
+.cg-botones--fin { justify-content: flex-end; margin-top: 16px; }
+
+/* --- Categorías (P-06) ----------------------------------------------------------- */
+@media (min-width: 1200px) {
+  .cg-rejilla--categorias { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
+}
+
+.cg-lista-categorias { margin: 0; padding: 0; list-style: none; }
+.cg-categoria { padding: 10px 0; border-bottom: 1px solid var(--cg-campo); }
+.cg-categoria:first-child { padding-top: 0; }
+
+.cg-categoria__fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.cg-categoria__nombre { flex: 1; min-width: 120px; font-weight: 500; overflow-wrap: anywhere; }
+.cg-categoria--inactiva .cg-categoria__nombre,
+.cg-categoria--inactiva .cg-punto { opacity: .55; }
+.cg-categoria__acciones { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+.cg-etiqueta {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--cg-campo);
+  color: var(--cg-texto-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cg-renombrar { display: flex; gap: 8px; margin-top: 10px; }
+.cg-renombrar .form-control { flex: 1; min-width: 0; }
+
+/* Interruptor Activa/Inactiva: botón con role="switch" que envía el formulario */
+.cg-interruptor {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 112px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--cg-radio-campo);
+  background: transparent;
+  color: var(--cg-texto);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cg-interruptor__pista {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  background: #D1D5DB;
+  transition: background-color .15s ease;
+}
+
+.cg-interruptor__pista::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, .25);
+  content: "";
+  transition: transform .15s ease;
+}
+
+.cg-interruptor[aria-checked="true"] .cg-interruptor__pista { background: var(--cg-ok-texto); }
+.cg-interruptor[aria-checked="true"] .cg-interruptor__pista::after { transform: translateX(16px); }
+
+/* Muestras de color de la paleta */
+.cg-muestras { display: flex; flex-wrap: wrap; gap: 8px; }
+.cg-muestra { position: relative; }
+.cg-muestra__entrada { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+.cg-muestra__boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--cg-color);
+  color: var(--cg-texto);
+  cursor: pointer;
+}
+
+.cg-muestra__boton .bi { font-size: 20px; visibility: hidden; }
+.cg-muestra__entrada:checked + .cg-muestra__boton { border-color: var(--cg-accion); box-shadow: inset 0 0 0 2px #fff; }
+.cg-muestra__entrada:checked + .cg-muestra__boton .bi { visibility: visible; }
+.cg-muestra__entrada:focus-visible + .cg-muestra__boton { outline: 2px solid var(--cg-accion); outline-offset: 2px; }
+
+/* --- Presupuesto (P-05) ------------------------------------------------------------ */
+.cg-categoria-nombre { display: inline-flex; align-items: center; gap: 10px; font-weight: 500; }
+.cg-entrada-monto { width: 160px; }
+.cg-entrada-monto .form-control { text-align: right; }
+.cg-avance { display: flex; align-items: center; gap: 10px; min-width: 160px; }
+.cg-avance .cg-barra { flex: 1; }
+.cg-avance .cg-numero { width: 56px; font-size: 13px; text-align: right; }
+
+@media (max-width: 1199.98px) {
+  .cg-tabla-presupuesto .cg-avance { width: min(220px, 60%); }
+  .cg-tabla-presupuesto .cg-entrada-monto { width: min(180px, 60%); }
 }
 
 /* --- Movimiento reducido ------------------------------------------------------ */

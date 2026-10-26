@@ -1,11 +1,12 @@
 """Elementos comunes de la interfaz: navegación, avatar y páginas de error."""
-from flask import Flask, current_app, render_template, request, url_for
+from flask import Flask, current_app, g, render_template, request, url_for
 from flask_login import current_user
 from flask_wtf.csrf import CSRFError
 from werkzeug.exceptions import HTTPException
 
 from app.extensions import db
 from app.seguridad import url_inicio
+from app.services.formato import hoy_lima
 
 # (texto, ícono de Bootstrap Icons, endpoint). Un ítem aparece cuando su ruta existe.
 NAVEGACION_MICROEMPRENDEDOR = (
@@ -56,9 +57,21 @@ def _construir_navegacion(items) -> list[dict]:
             blueprint != "auth" and request.blueprint == blueprint
         )
         navegacion.append(
-            {"texto": texto, "icono": icono, "url": url_for(endpoint), "activo": activo, "badge": None}
+            {"texto": texto, "icono": icono, "url": url_for(endpoint), "activo": activo, "endpoint": endpoint}
         )
     return navegacion
+
+
+def _resumen_lateral():
+    """Presupuesto del mes actual para la barra lateral, el widget y el badge de alertas.
+
+    Se calcula solo si la plantilla lo pide y una vez por petición (se guarda en g).
+    """
+    if "resumen_lateral" not in g:
+        from app.services import presupuesto as presupuesto_service
+
+        g.resumen_lateral = presupuesto_service.comparar(current_user.id, hoy_lima())
+    return g.resumen_lateral
 
 
 def _contexto_comun() -> dict:
@@ -75,6 +88,7 @@ def _contexto_comun() -> dict:
         "navegacion": _construir_navegacion(items),
         "url_inicio": url_inicio(current_user),
         "url_registrar_gasto": url_for(ENDPOINT_REGISTRAR_GASTO) if puede_registrar else None,
+        "resumen_lateral": None if es_admin else _resumen_lateral,
     }
 
 

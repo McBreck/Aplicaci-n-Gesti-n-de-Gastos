@@ -1,0 +1,115 @@
+{#- P-05 Presupuesto del mes (CU-10; RF-12 a RF-14) -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta, kpi, chip_estado, barra_presupuesto, estado_vacio %}
+{% from "componentes/selector_mes.html" import selector_mes %}
+{% from "componentes/formularios.html" import aviso %}
+
+{% block titulo %}Presupuesto{% endblock %}
+
+{% block acciones_cabecera %}
+{{ selector_mes("presupuesto.ver", mes, anterior, siguiente, "d-none d-sm-flex") }}
+{% endblock %}
+
+{% block contenido %}
+{% set c = comparacion %}
+{{ selector_mes("presupuesto.ver", mes, anterior, siguiente, "cg-selector-mes--contenido d-flex d-sm-none") }}
+
+<div class="cg-resumen">
+  {{ kpi("Planificado", c.total_planificado|soles, "Suma de los montos que definiste", "bi-clipboard-check") }}
+  {{ kpi("Ejecutado", c.total_ejecutado|soles, "Total gastado en el mes: " ~ (c.total_mes|soles), "bi-receipt") }}
+  {% call kpi("Presupuesto usado", c.porcentaje_usado|porcentaje if c.tiene_presupuesto else "—", none, "bi-pie-chart") %}
+    {% if c.tiene_presupuesto %}
+    <div class="cg-kpi__barra">{{ barra_presupuesto(c.porcentaje_barra, c.estado_general) }}{{ chip_estado(c.estado_general) }}</div>
+    {% else %}
+    <div class="cg-kpi__detalle">Define tu presupuesto para ver si te mantienes dentro de lo planificado</div>
+    {% endif %}
+  {% endcall %}
+</div>
+
+{#- RF-14: alertas al llegar al 80 % y al superar lo planificado -#}
+{% for fila in c.alertas %}
+  {% if fila.estado == "Excedida" %}
+    {{ aviso(fila.categoria.nombre ~ " superó su presupuesto: " ~ (fila.ejecutado|soles) ~ " de " ~ (fila.planificado|soles) ~ (" (" ~ (fila.porcentaje|porcentaje) ~ ")" if fila.porcentaje is not none else "") ~ ".", "error") }}
+  {% else %}
+    {{ aviso(fila.categoria.nombre ~ " llegó al " ~ (fila.porcentaje|porcentaje) ~ " de su presupuesto: " ~ (fila.ejecutado|soles) ~ " de " ~ (fila.planificado|soles) ~ ".", "aviso") }}
+  {% endif %}
+{% endfor %}
+
+{% call tarjeta("Presupuesto de " ~ (mes|mes_anio)) %}
+{% if not editable %}{{ aviso(mensaje_periodo, "info") }}{% endif %}
+{% if c.filas %}
+<form method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <table class="table cg-tabla cg-tabla-apilable cg-tabla-presupuesto align-middle mb-0">
+    <thead>
+      <tr>
+        <th scope="col">Categoría</th>
+        <th scope="col">Planificado</th>
+        <th scope="col">Ejecutado</th>
+        <th scope="col">Avance</th>
+        <th scope="col">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for fila in c.filas %}
+      {% set clave = fila.categoria.id|string %}
+      <tr>
+        <td class="cg-celda-titulo">
+          <span class="cg-categoria-nombre">
+            <span class="cg-punto" data-cg-color="{{ fila.categoria.color }}" aria-hidden="true"></span>
+            {{ fila.categoria.nombre }}{% if not fila.categoria.activa %} <span class="cg-texto-secundario">(inactiva)</span>{% endif %}
+          </span>
+        </td>
+        <td data-etiqueta="Planificado">
+          <div class="cg-celda__valor cg-entrada-monto">
+            <label class="visually-hidden" for="monto-{{ clave }}">Presupuesto de {{ fila.categoria.nombre }} en soles</label>
+            <input class="form-control cg-numero{% if errores[clave] %} is-invalid{% endif %}" id="monto-{{ clave }}"
+                   name="monto_{{ clave }}" inputmode="decimal" autocomplete="off" placeholder="Sin presupuesto"
+                   value="{{ valores[clave] if clave in valores else ('%.2f'|format(fila.planificado) if fila.tiene_presupuesto else '') }}"
+                   {% if not editable %}disabled{% endif %}
+                   {% if errores[clave] %}aria-invalid="true" aria-describedby="monto-{{ clave }}-error"{% endif %}>
+            {% if errores[clave] %}
+            <div class="invalid-feedback d-block" id="monto-{{ clave }}-error">{{ errores[clave] }}</div>
+            {% endif %}
+          </div>
+        </td>
+        <td data-etiqueta="Ejecutado" class="cg-numero">{{ fila.ejecutado|soles }}</td>
+        <td data-etiqueta="Avance">
+          {% if fila.tiene_presupuesto %}
+          <div class="cg-celda__valor cg-avance">
+            {{ barra_presupuesto(fila.porcentaje_barra, fila.estado) }}
+            <span class="cg-numero">{{ fila.porcentaje|porcentaje }}</span>
+          </div>
+          {% else %}<span class="cg-texto-secundario">—</span>{% endif %}
+        </td>
+        <td data-etiqueta="Estado">
+          {% if fila.estado %}{{ chip_estado(fila.estado) }}{% else %}<span class="cg-texto-secundario">Sin presupuesto</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if c.sin_categoria %}
+  <p class="cg-texto-secundario cg-nota">También gastaste {{ c.sin_categoria|soles }} sin categoría; ese monto no cuenta en el presupuesto.</p>
+  {% endif %}
+  <p class="cg-texto-secundario cg-nota">Deja un monto vacío si esa categoría no tiene presupuesto. Puedes usar 0.</p>
+
+  {% if editable %}
+  <div class="cg-botones cg-botones--fin">
+    <button type="button" class="btn btn-cg-secundario" data-bs-toggle="modal" data-bs-target="#modalConfirmacion"
+            data-cg-accion="{{ url_for('presupuesto.copiar', mes=mes.strftime('%Y-%m')) }}"
+            data-cg-titulo="Copiar del mes anterior"
+            data-cg-mensaje="Se copiarán los montos de {{ mes_previo|mes_anio }} a {{ mes|mes_anio }}. Si ya definiste un monto para la misma categoría, se reemplazará."
+            data-cg-boton="Copiar">
+      <i class="bi bi-copy" aria-hidden="true"></i>Copiar del mes anterior
+    </button>
+    <button type="submit" class="btn btn-cg">Guardar</button>
+  </div>
+  {% endif %}
+</form>
+{% else %}
+{{ estado_vacio("bi-tags", "No tienes categorías activas para definir un presupuesto.", url_for('categorias.listar'), "Ver categorías") }}
+{% endif %}
+{% endcall %}
+{% endblock %}

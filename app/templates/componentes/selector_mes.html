@@ -1,0 +1,19 @@
+{#- Selector de mes de la cabecera (sección 11): ‹ Octubre 2026 ›.
+    anterior/siguiente son el primer día del mes vecino, o none si no se puede ir. -#}
+{% macro selector_mes(endpoint, mes, anterior=none, siguiente=none, clase="") -%}
+<nav class="cg-selector-mes {{ clase }}" aria-label="Cambiar de mes">
+  {% if anterior %}
+  <a class="btn btn-cg-secundario btn-cg-icono" href="{{ url_for(endpoint, mes=anterior.strftime('%Y-%m')) }}"
+     aria-label="Ver {{ anterior|mes_anio }}"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+  {% else %}
+  <span class="cg-selector-mes__hueco" aria-hidden="true"></span>
+  {% endif %}
+  <span class="cg-selector-mes__texto">{{ mes|mes_anio }}</span>
+  {% if siguiente %}
+  <a class="btn btn-cg-secundario btn-cg-icono" href="{{ url_for(endpoint, mes=siguiente.strftime('%Y-%m')) }}"
+     aria-label="Ver {{ siguiente|mes_anio }}"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+  {% else %}
+  <span class="cg-selector-mes__hueco" aria-hidden="true"></span>
+  {% endif %}
+</nav>
+{%- endmacro %}
