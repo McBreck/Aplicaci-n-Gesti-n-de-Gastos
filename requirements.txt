@@ -12,3 +12,9 @@ numpy==1.26.4
 reportlab==4.2.5
 python-dotenv==1.0.1
 gunicorn==22.0.0
+
+# Dependencias indirectas fijadas para que las instalaciones sean reproducibles
+# (decisión de los investigadores del 26/10/2026)
+SQLAlchemy==2.1.6
+alembic==1.20.1
+limits==5.8.0
