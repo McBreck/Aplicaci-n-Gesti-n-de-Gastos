@@ -1,0 +1,51 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Variables de entorno y secretos (nunca se versionan; usar .env.example)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Pruebas y cobertura
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Flask
+instance/
+
+# Respaldos y volcados de base de datos
+*.dump
+*.sql.gz
+respaldos/
+
+# Reportes PDF generados en local
+reporte_gastos_*.pdf
+
+# Registros
+*.log
+logs/
+
+# Editores y sistema operativo
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Configuración local de Claude Code
+.claude/settings.local.json
