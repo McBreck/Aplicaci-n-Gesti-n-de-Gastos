@@ -52,6 +52,14 @@ def fecha(valor: date | datetime | None) -> str:
     return f"{valor.day:02d}/{valor.month:02d}/{valor.year}"
 
 
+def fecha_hora(valor: datetime | None) -> str:
+    """Instante en hora de Lima → '26/10/2026 14:05'."""
+    if valor is None:
+        return ""
+    valor = _en_lima(valor)
+    return f"{fecha(valor)} {valor.hour:02d}:{valor.minute:02d}"
+
+
 def fecha_corta(valor: date | datetime | None) -> str:
     """date(2026, 10, 26) → 'lun, 26 oct'."""
     if valor is None:

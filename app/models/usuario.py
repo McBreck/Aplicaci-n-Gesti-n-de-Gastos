@@ -63,4 +63,6 @@ class Usuario(UserMixin, db.Model):
 
 @login_manager.user_loader
 def cargar_usuario(id_usuario: str) -> Usuario | None:
-    return db.session.get(Usuario, int(id_usuario))
+    """Una cuenta desactivada pierde la sesión en su siguiente petición (RF-04)."""
+    usuario = db.session.get(Usuario, int(id_usuario))
+    return usuario if usuario is not None and usuario.activo else None
