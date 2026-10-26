@@ -4,6 +4,34 @@ Todos los cambios relevantes de ControlGastos se registran en este archivo, agru
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Secciones por entrada: **Agregado**, **Cambiado**, **Corregido**, **Eliminado**, **Seguridad**.
 
+## [EDT 3.4] Categorías, presupuesto y alertas — 26/10/2026
+
+### Agregado
+- P-06 Categorías (RF-11, CU-09):
+  - lista con punto de color, etiqueta "Predeterminada" e interruptor Activa/Inactiva;
+  - "Renombrar" solo en las categorías propias;
+  - "Nueva categoría" con nombre y muestras de la paleta;
+  - un nombre repetido (sin distinguir mayúsculas) muestra "Ya tienes una categoría con ese nombre".
+- P-05 Presupuesto del mes (RF-12 a RF-14, CU-10):
+  - selector de mes ‹ Octubre 2026 ›;
+  - resumen con lo planificado, lo ejecutado y el presupuesto usado (A9);
+  - una fila por categoría con monto planificado editable, ejecutado, barra con marca en el 100 %, porcentaje y estado (Controlada, En alerta o Excedida, siempre con ícono y palabra);
+  - "Copiar del mes anterior" con confirmación (flujo alterno 3a);
+  - un campo vacío significa "sin presupuesto" y se acepta 0.
+- Alertas visuales al llegar al 80 % y al superar lo planificado (RF-14): avisos en P-05, badge en "Presupuesto" con la cantidad de categorías en alerta o excedidas, y widget de la barra lateral.
+- Barra lateral del microemprendedor: lista "Categorías" con el monto del mes (cada una abre sus gastos) y widget "Presupuesto de {mes}" ("Has usado el … %", o "Aún no defines tu presupuesto" con "Definir presupuesto").
+- `PresupuestoService`:
+  - comparación ejecutado vs. planificado en tres consultas;
+  - estados según RN-05 y RN-06;
+  - guardado con un solo presupuesto por categoría y mes (RN-10);
+  - copia del mes anterior;
+  - bitácora con los montos anteriores y nuevos.
+- `CategoriaService`: crear, renombrar, activar y desactivar, con bitácora.
+- Módulos compartidos `validacion.py` (montos y errores por campo) y `periodo.py` (meses), y el componente `selector_mes`.
+
+### Cambiado
+- `requirements.txt` fija las dependencias indirectas SQLAlchemy 2.1.6, alembic 1.20.1 y limits 5.8.0 (decisión de los investigadores).
+
 ## [EDT 3.3] Gastos y completitud — 26/10/2026
 
 ### Agregado

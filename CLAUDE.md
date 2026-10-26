@@ -64,6 +64,54 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - los datos de verificación de la sección 9 están en `tests/datos_verificacion.py`; úsalos también en la EDT 3.5;
   - datos con el prefijo `PRUEBA`; la base de pruebas se borra y se recrea con la migración.
 - **Listados**: una consulta para la página, otra para los agregados y otra para los totales por día (sin N+1). Siempre se filtra por `usuario_id` y `eliminado = FALSE`.
+- **Presupuesto**: `presupuesto.comparar(usuario_id, mes)` es la única fuente de lo planificado y lo ejecutado por categoría (A7), de A9 y de las alertas. La usan P-05, el widget, la lista de categorías de la barra lateral y el badge.
+  - La barra lateral la pide al dibujarse y la guarda en `g` una vez por petición (`app/interfaz.py`).
+  - En la EDT 3.5, A7 y A9 sobre el DataFrame deben dar los mismos valores.
+- **Utilidades compartidas**:
+  - `services/validacion.py`: `interpretar_monto` (con `permitir_cero`) y `ErrorValidacion`;
+  - `services/periodo.py`: `interpretar_mes(?mes=AAAA-MM)`, mes anterior y siguiente, último día;
+  - macro `componentes/selector_mes.html`.
+
+## Decisiones confirmadas por los investigadores (26/10/2026)
+
+- **Versiones indirectas fijas** en `requirements.txt`: SQLAlchemy 2.1.6, alembic 1.20.1 y limits 5.8.0.
+- **Casos de prueba**: catálogo propuesto y confirmado (los nombres de las pruebas usan estos códigos):
+
+  | CP | Qué cubre |
+  |---|---|
+  | CP-01 | Ingreso válido |
+  | CP-02 | Datos incorrectos |
+  | CP-03 | Bloqueo tras 5 intentos |
+  | CP-04 | Cuenta desactivada |
+  | CP-05 | Cierre de sesión |
+  | CP-06 | Cierre por inactividad |
+  | CP-07 | Cambio de contraseña |
+  | CP-08 | Alta de cuenta |
+  | CP-09 | Duplicado, edición, estado y restablecimiento |
+  | CP-10 | Registro completo |
+  | CP-11 | Registro solo con fecha y monto |
+  | CP-12 | Monto inválido |
+  | CP-13 | Fecha futura |
+  | CP-14 | Completar al editar |
+  | CP-15 | Eliminar |
+  | CP-16 | Filtros y paginación |
+  | CP-17 | Completitud y dato más omitido |
+  | CP-18 | Crear y renombrar categorías |
+  | CP-19 | Desactivar categoría |
+  | CP-20 | Presupuesto y copia del mes anterior |
+  | CP-21 | Comparación y alertas (límites 79.9, 80, 100 y 100.1 %) |
+  | CP-29 | Control de acceso (403 y 404) |
+  | CP-30 | CSRF |
+  | CP-31 | Contraseñas protegidas |
+
+  CP-22 a CP-28 y CP-32 a CP-34 se definen en sus etapas.
+- **Detalles aprobados**:
+  - P-08 solo gestiona cuentas de microemprendedor; las de administrador se crean con `flask crear-admin`;
+  - la contraseña nueva debe ser distinta de la actual;
+  - en P-08, "Desactivar" y "Restablecer" van en el menú "Más acciones";
+  - los filtros de gastos incluyen "Sin categoría" y "Sin registrar";
+  - la búsqueda no distingue tildes ni mayúsculas;
+  - si "Desde" es posterior a "Hasta", las fechas se intercambian con un aviso.
 - **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
 
 ## Entorno local (Windows)
