@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
+from flask import g
+from flask.testing import FlaskClient
 from flask_migrate import upgrade
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
@@ -31,6 +33,19 @@ LIMPIEZA = (
 )
 
 
+class ClientePruebas(FlaskClient):
+    """Cada petición empieza con `g` vacío, como en producción.
+
+    Las pruebas mantienen un contexto de aplicación abierto y Flask reutiliza
+    su `g` entre peticiones; Flask-Login, CSRF y el limitador guardan ahí datos
+    de la petición anterior.
+    """
+
+    def open(self, *args, **kwargs):
+        g.__dict__.clear()
+        return super().open(*args, **kwargs)
+
+
 def _verificar_base_de_pruebas(url: str) -> None:
     nombre = make_url(url).database or ""
     if "prueba" not in nombre:
@@ -44,6 +59,7 @@ def _verificar_base_de_pruebas(url: str) -> None:
 @pytest.fixture(scope="session")
 def app():
     aplicacion = create_app("pruebas")
+    aplicacion.test_client_class = ClientePruebas
     _verificar_base_de_pruebas(aplicacion.config["SQLALCHEMY_DATABASE_URI"])
     with aplicacion.app_context():
         with db.engine.begin() as conexion:
@@ -58,6 +74,7 @@ def app():
 @pytest.fixture
 def sesion(app):
     yield db.session
+    g.__dict__.clear()
     db.session.rollback()
     for sentencia in LIMPIEZA:
         db.session.execute(text(sentencia))
@@ -78,11 +95,29 @@ def ejecutor_cli(app, sesion):
 def crear_usuario(sesion):
     """Crea usuarios PRUEBA con datos mínimos válidos."""
 
-    def _crear(correo: str = "prueba.ana@ejemplo.com", **campos) -> Usuario:
+    def _crear(correo: str = "prueba.ana@ejemplo.com", contrasena: str = "clave1234", **campos) -> Usuario:
         usuario = Usuario(nombre=campos.pop("nombre", "PRUEBA Ana"), correo=correo, **campos)
-        usuario.establecer_contrasena("clave1234")
+        usuario.establecer_contrasena(contrasena)
         sesion.add(usuario)
         sesion.commit()
         return usuario
 
     return _crear
+
+
+@pytest.fixture
+def crear_admin(crear_usuario):
+    def _crear(correo: str = "prueba.admin@ejemplo.com") -> Usuario:
+        return crear_usuario(correo, nombre="PRUEBA Admin", rol="administrador")
+
+    return _crear
+
+
+@pytest.fixture
+def iniciar_sesion(cliente):
+    """Inicia sesión con el cliente de pruebas y devuelve la respuesta."""
+
+    def _iniciar(correo: str, contrasena: str = "clave1234", **opciones):
+        return cliente.post("/login", data={"correo": correo, "contrasena": contrasena}, **opciones)
+
+    return _iniciar

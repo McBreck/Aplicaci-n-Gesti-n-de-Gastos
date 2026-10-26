@@ -35,6 +35,12 @@ def test_fecha_convierte_a_hora_de_lima():
     assert formato.fecha(instante) == "26/10/2026"
 
 
+def test_fecha_hora_en_lima():
+    # 19:05 UTC son las 14:05 en Lima
+    assert formato.fecha_hora(datetime(2026, 10, 26, 19, 5, tzinfo=timezone.utc)) == "26/10/2026 14:05"
+    assert formato.fecha_hora(None) == ""
+
+
 @pytest.mark.parametrize(
     ("valor", "esperado"),
     [
