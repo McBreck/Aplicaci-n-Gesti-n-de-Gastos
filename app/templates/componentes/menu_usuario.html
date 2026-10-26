@@ -1,0 +1,27 @@
+{#- Avatar con iniciales y menú: Mi cuenta y Cerrar sesión -#}
+<div class="dropdown">
+  <button class="cg-avatar" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+          aria-label="Menú de {{ current_user.nombre }}">
+    {{ current_user.nombre|iniciales }}
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end cg-menu">
+    <li class="cg-menu__encabezado">
+      <strong>{{ current_user.nombre }}</strong>
+      <span>{{ current_user.correo }}</span>
+    </li>
+    <li><hr class="dropdown-divider"></li>
+    <li>
+      <a class="dropdown-item" href="{{ url_for('auth.cuenta') }}">
+        <i class="bi bi-person-circle" aria-hidden="true"></i> Mi cuenta
+      </a>
+    </li>
+    <li>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="dropdown-item">
+          <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión
+        </button>
+      </form>
+    </li>
+  </ul>
+</div>

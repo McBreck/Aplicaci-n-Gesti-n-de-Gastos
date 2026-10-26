@@ -1,0 +1,30 @@
+{#- Mensajes flash como toasts (sección 11.3).
+    El mensaje puede ser texto o un dict {texto, accion_url, accion_texto} para incluir un botón
+    (por ejemplo, "Completar ahora" tras registrar un gasto incompleto). -#}
+{% set iconos = {
+  "exito": "bi-check-circle",
+  "error": "bi-x-circle",
+  "aviso": "bi-exclamation-triangle",
+  "info": "bi-info-circle",
+} %}
+<div class="cg-toasts" aria-live="polite">
+  {% for categoria, mensaje in get_flashed_messages(with_categories=true) %}
+  {% set categoria = categoria if categoria in iconos else "info" %}
+  {% set con_accion = mensaje is mapping and mensaje.accion_url %}
+  <div class="toast cg-toast cg-toast--{{ categoria }}" role="{{ 'alert' if categoria == 'error' else 'status' }}"
+       data-bs-autohide="{{ 'false' if con_accion else 'true' }}" data-bs-delay="6000">
+    <div class="cg-toast__cuerpo">
+      <i class="bi {{ iconos[categoria] }} cg-toast__icono" aria-hidden="true"></i>
+      <div class="cg-toast__texto">
+        {{ mensaje.texto if mensaje is mapping else mensaje }}
+        {% if con_accion %}
+        <div class="mt-2">
+          <a class="btn btn-cg btn-cg-chico" href="{{ mensaje.accion_url }}">{{ mensaje.accion_texto }}</a>
+        </div>
+        {% endif %}
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar mensaje"></button>
+    </div>
+  </div>
+  {% endfor %}
+</div>

@@ -44,6 +44,7 @@ def create_app(entorno: str | None = None, **config_extra) -> Flask:
     talisman = _registrar_seguridad(app)
     _registrar_filtros(app)
     _registrar_rutas_base(app, talisman)
+    _registrar_blueprints(app)
     _registrar_comandos(app)
     return app
 
@@ -97,6 +98,9 @@ def _registrar_extensiones(app: Flask) -> None:
 
 
 def _registrar_seguridad(app: Flask) -> Talisman:
+    from app.seguridad import exigir_sesion
+
+    app.before_request(exigir_sesion)
     forzar_https = app.config["FORZAR_HTTPS"]
     if app.config["APP_ENV"] == "produccion":
         # Nginx entrega la IP real del cliente y el esquema original (A05, A09)
@@ -113,6 +117,7 @@ def _registrar_seguridad(app: Flask) -> Talisman:
 def _registrar_filtros(app: Flask) -> None:
     app.add_template_filter(formato.soles, "soles")
     app.add_template_filter(formato.fecha, "fecha")
+    app.add_template_filter(formato.fecha_hora, "fecha_hora")
     app.add_template_filter(formato.fecha_corta, "fecha_corta")
     app.add_template_filter(formato.mes_anio, "mes_anio")
     app.add_template_filter(formato.color_texto, "color_texto")
@@ -124,6 +129,14 @@ def _registrar_rutas_base(app: Flask, talisman: Talisman) -> None:
     def salud():
         """Monitoreo de disponibilidad (RNF-13): no expone datos."""
         return jsonify(estado="ok")
+
+
+def _registrar_blueprints(app: Flask) -> None:
+    from app.blueprints import registrar_blueprints
+    from app.interfaz import registrar_interfaz
+
+    registrar_blueprints(app)
+    registrar_interfaz(app)
 
 
 def _registrar_comandos(app: Flask) -> None:

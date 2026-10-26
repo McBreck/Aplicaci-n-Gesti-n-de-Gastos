@@ -1,0 +1,29 @@
+{#- P-08 Alta y edición de cuentas -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta %}
+{% from "componentes/formularios.html" import campo %}
+
+{% block titulo %}{{ "Nuevo usuario" if nuevo else "Editar usuario" }}{% endblock %}
+
+{% block contenido %}
+<div class="cg-columna-formulario">
+  {% call tarjeta("Datos de la cuenta") %}
+  <form method="post" novalidate>
+    {{ form.csrf_token }}
+    {{ campo(form.nombre, autocomplete="off") }}
+    {{ campo(form.correo, type="email", inputmode="email", autocomplete="off",
+             ayuda="Con este correo ingresará a ControlGastos.") }}
+    {{ campo(form.nombre_negocio, autocomplete="off", placeholder="Por ejemplo: Panadería El Trigal") }}
+    {{ campo(form.rubro, autocomplete="off", placeholder="Por ejemplo: Panadería, bodega, restaurante") }}
+    {% if nuevo %}
+    {{ campo(form.contrasena_temporal, autocomplete="off", spellcheck="false",
+             ayuda="Mínimo 8 caracteres, con letras y números. Compártela con la persona; podrá cambiarla en Mi cuenta.") }}
+    {% endif %}
+    <div class="cg-botones">
+      <button class="btn btn-cg" type="submit">Guardar</button>
+      <a class="btn btn-cg-secundario" href="{{ url_for('admin.listar_usuarios') }}">Cancelar</a>
+    </div>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}

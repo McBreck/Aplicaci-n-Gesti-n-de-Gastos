@@ -1,0 +1,46 @@
+{#- Layout de la aplicación (sección 11.3): barra lateral, cabecera, offcanvas, FAB y modal de confirmación -#}
+{% extends "_esqueleto.html" %}
+{% from "componentes/ui.html" import modal_confirmacion %}
+
+{% block clase_cuerpo %}cg-app{% endblock %}
+
+{% block cuerpo %}
+<aside class="cg-lateral" aria-label="Menú principal">
+  {% with en_lateral = true %}{% include "componentes/navegacion.html" %}{% endwith %}
+</aside>
+
+<div class="offcanvas offcanvas-start cg-offcanvas" tabindex="-1" id="menuMovil" aria-label="Menú principal">
+  <div class="offcanvas-header">
+    <button type="button" class="btn-close ms-auto" data-bs-dismiss="offcanvas" aria-label="Cerrar menú"></button>
+  </div>
+  <div class="offcanvas-body">
+    {% with en_lateral = false %}{% include "componentes/navegacion.html" %}{% endwith %}
+  </div>
+</div>
+
+<div class="cg-principal">
+  <header class="cg-cabecera">
+    <button class="btn btn-cg-secundario btn-cg-icono d-sm-none" type="button"
+            data-bs-toggle="offcanvas" data-bs-target="#menuMovil" aria-controls="menuMovil" aria-label="Abrir menú">
+      <i class="bi bi-list" aria-hidden="true"></i>
+    </button>
+    <h1 class="cg-cabecera__titulo">{% block titulo_pagina %}{{ self.titulo() }}{% endblock %}</h1>
+    <div class="cg-cabecera__acciones">
+      {% block acciones_cabecera %}{% endblock %}
+      {% include "componentes/menu_usuario.html" %}
+    </div>
+  </header>
+
+  <main id="contenido" class="cg-contenido" tabindex="-1">
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
+
+{% if url_registrar_gasto %}
+<a class="cg-fab" href="{{ url_registrar_gasto }}" aria-label="Registrar gasto">
+  <i class="bi bi-plus-lg" aria-hidden="true"></i>
+</a>
+{% endif %}
+
+{{ modal_confirmacion() }}
+{% endblock %}

@@ -1,0 +1,11 @@
+{#- P-02 Inicio. El dashboard completo se construye en la EDT 3.6 -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta, estado_vacio %}
+
+{% block titulo %}Inicio{% endblock %}
+
+{% block contenido %}
+{% call tarjeta() %}
+{{ estado_vacio("bi-bar-chart", "Hola, " ~ current_user.nombre.split()[0] ~ ". Aquí verás el resumen de tus gastos del mes.") }}
+{% endcall %}
+{% endblock %}

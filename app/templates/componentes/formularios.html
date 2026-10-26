@@ -1,0 +1,50 @@
+{#- Campos de formulario "suaves" con etiqueta, ayuda y errores accesibles -#}
+
+{% macro _atributos(field, ayuda, extra) -%}
+{%- set descripciones = [] -%}
+{%- if ayuda %}{% set _ = descripciones.append(field.id ~ "-ayuda") %}{% endif -%}
+{%- if field.errors %}{% set _ = descripciones.append(field.id ~ "-error") %}{% endif -%}
+{%- set atributos = dict(extra) -%}
+{%- set _ = atributos.update({"class": "form-control" ~ (" is-invalid" if field.errors else "")}) -%}
+{%- if descripciones %}{% set _ = atributos.update({"aria-describedby": descripciones|join(" ")}) %}{% endif -%}
+{%- if field.errors %}{% set _ = atributos.update({"aria-invalid": "true"}) %}{% endif -%}
+{{ field(**atributos) }}
+{%- endmacro %}
+
+{% macro _pie(field, ayuda) -%}
+{% if ayuda %}<div class="form-text" id="{{ field.id }}-ayuda">{{ ayuda }}</div>{% endif %}
+{% if field.errors %}
+<div class="invalid-feedback d-block" id="{{ field.id }}-error">
+  <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ field.errors[0] }}
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro campo(field, ayuda=None) -%}
+<div class="cg-campo">
+  {{ field.label(class="form-label") }}
+  {{ _atributos(field, ayuda, kwargs) }}
+  {{ _pie(field, ayuda) }}
+</div>
+{%- endmacro %}
+
+{% macro campo_contrasena(field, ayuda=None) -%}
+<div class="cg-campo">
+  {{ field.label(class="form-label") }}
+  <div class="cg-campo-contrasena">
+    {{ _atributos(field, ayuda, kwargs) }}
+    <button type="button" class="cg-campo-contrasena__boton" data-cg-alternar-contrasena="{{ field.id }}"
+            aria-label="Mostrar contraseña" aria-pressed="false">
+      <i class="bi bi-eye" aria-hidden="true"></i>
+    </button>
+  </div>
+  {{ _pie(field, ayuda) }}
+</div>
+{%- endmacro %}
+
+{% macro aviso(texto, tipo="error") -%}
+{% set iconos = {"error": "bi-x-circle", "aviso": "bi-exclamation-triangle", "info": "bi-info-circle", "exito": "bi-check-circle"} %}
+<div class="cg-aviso cg-aviso--{{ tipo }}" role="{{ 'alert' if tipo == 'error' else 'status' }}">
+  <i class="bi {{ iconos[tipo] }}" aria-hidden="true"></i><span>{{ texto }}</span>
+</div>
+{%- endmacro %}

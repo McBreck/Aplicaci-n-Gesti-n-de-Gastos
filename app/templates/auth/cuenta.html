@@ -1,0 +1,37 @@
+{#- P-09 Mi cuenta -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta %}
+{% from "componentes/formularios.html" import campo_contrasena, aviso %}
+
+{% block titulo %}Mi cuenta{% endblock %}
+
+{% block contenido %}
+<div class="cg-rejilla cg-rejilla--2">
+  {% call tarjeta("Tus datos") %}
+  <dl class="cg-datos">
+    <div><dt>Nombre</dt><dd>{{ current_user.nombre }}</dd></div>
+    <div><dt>Correo</dt><dd>{{ current_user.correo }}</dd></div>
+    {% if not current_user.es_administrador %}
+    <div><dt>Negocio</dt><dd>{{ current_user.nombre_negocio or "Sin registrar" }}</dd></div>
+    <div><dt>Rubro</dt><dd>{{ current_user.rubro or "Sin registrar" }}</dd></div>
+    {% endif %}
+    <div><dt>Tipo de cuenta</dt><dd>{{ "Administrador" if current_user.es_administrador else "Microemprendedor" }}</dd></div>
+  </dl>
+  {% if not current_user.es_administrador %}
+  <p class="cg-texto-secundario mb-0">Si necesitas cambiar estos datos, comunícate con el administrador.</p>
+  {% endif %}
+  {% endcall %}
+
+  {% call tarjeta("Cambiar contraseña") %}
+  {% if error %}{{ aviso(error, "error") }}{% endif %}
+  {{ aviso(politica, "info") }}
+  <form method="post" novalidate>
+    {{ form.csrf_token }}
+    {{ campo_contrasena(form.contrasena_actual, autocomplete="current-password") }}
+    {{ campo_contrasena(form.contrasena_nueva, autocomplete="new-password") }}
+    {{ campo_contrasena(form.confirmacion, autocomplete="new-password") }}
+    <button class="btn btn-cg" type="submit">Guardar contraseña</button>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}

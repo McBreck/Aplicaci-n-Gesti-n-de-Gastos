@@ -1,0 +1,92 @@
+{#- P-08 Administración de usuarios -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta, chip_estado, estado_vacio %}
+
+{% block titulo %}Usuarios{% endblock %}
+
+{% block acciones_cabecera %}
+<a class="btn btn-cg cg-boton-adaptable" href="{{ url_for('admin.nuevo_usuario') }}">
+  <i class="bi bi-plus-lg" aria-hidden="true"></i><span class="cg-boton-adaptable__texto">Nuevo usuario</span>
+</a>
+{% endblock %}
+
+{% block contenido %}
+{% call tarjeta("Cuentas de microemprendedores") %}
+{% if usuarios %}
+<table class="table cg-tabla cg-tabla-apilable align-middle mb-0">
+  <thead>
+    <tr>
+      <th scope="col">Cuenta</th>
+      <th scope="col">Negocio</th>
+      <th scope="col">Estado</th>
+      <th scope="col">Último acceso</th>
+      <th scope="col"><span class="visually-hidden">Acciones</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for usuario in usuarios %}
+    <tr>
+      <td class="cg-celda-titulo">
+        <div class="fw-semibold">{{ usuario.nombre }}</div>
+        <div class="cg-texto-secundario cg-texto-chico cg-cortar">{{ usuario.correo }}</div>
+      </td>
+      <td data-etiqueta="Negocio">
+        <div class="cg-celda__valor">
+          <div>{{ usuario.nombre_negocio or "Sin registrar" }}</div>
+          {% if usuario.rubro %}<div class="cg-texto-secundario cg-texto-chico">{{ usuario.rubro }}</div>{% endif %}
+        </div>
+      </td>
+      <td data-etiqueta="Estado">{{ chip_estado("Activa" if usuario.activo else "Inactiva") }}</td>
+      <td data-etiqueta="Último acceso" class="cg-numero">
+        {{ usuario.ultimo_acceso|fecha_hora if usuario.ultimo_acceso else "Nunca" }}
+      </td>
+      <td class="cg-celda-acciones">
+        <div class="cg-acciones-fila">
+          <a class="btn btn-cg-secundario" href="{{ url_for('admin.editar_usuario', id_usuario=usuario.id) }}">Editar</a>
+          <div class="dropdown">
+            <button class="btn btn-cg-secundario btn-cg-icono" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false" aria-label="Más acciones para {{ usuario.nombre }}">
+              <i class="bi bi-three-dots" aria-hidden="true"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end cg-menu">
+              <li>
+                {% if usuario.activo %}
+                <button type="button" class="dropdown-item cg-menu__peligro" data-bs-toggle="modal" data-bs-target="#modalConfirmacion"
+                        data-cg-accion="{{ url_for('admin.cambiar_estado', id_usuario=usuario.id) }}"
+                        data-cg-titulo="Desactivar cuenta"
+                        data-cg-mensaje="{{ usuario.nombre }} no podrá ingresar hasta que vuelvas a activar su cuenta. Sus datos se conservan."
+                        data-cg-boton="Desactivar" data-cg-peligro>
+                  <i class="bi bi-person-dash" aria-hidden="true"></i> Desactivar cuenta
+                </button>
+                {% else %}
+                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalConfirmacion"
+                        data-cg-accion="{{ url_for('admin.cambiar_estado', id_usuario=usuario.id) }}"
+                        data-cg-titulo="Activar cuenta"
+                        data-cg-mensaje="{{ usuario.nombre }} podrá volver a ingresar con su contraseña."
+                        data-cg-boton="Activar">
+                  <i class="bi bi-person-check" aria-hidden="true"></i> Activar cuenta
+                </button>
+                {% endif %}
+              </li>
+              <li>
+                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalConfirmacion"
+                        data-cg-accion="{{ url_for('admin.restablecer_contrasena', id_usuario=usuario.id) }}"
+                        data-cg-titulo="Restablecer contraseña"
+                        data-cg-mensaje="Se creará una contraseña temporal para {{ usuario.nombre }} y la actual dejará de funcionar. La verás una sola vez."
+                        data-cg-boton="Restablecer">
+                  <i class="bi bi-key" aria-hidden="true"></i> Restablecer contraseña
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+{{ estado_vacio("bi-people", "Aún no hay cuentas de microemprendedores.", url_for('admin.nuevo_usuario'), "Nuevo usuario") }}
+{% endif %}
+{% endcall %}
+{% endblock %}

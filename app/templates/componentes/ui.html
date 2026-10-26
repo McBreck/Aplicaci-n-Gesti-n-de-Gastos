@@ -1,0 +1,107 @@
+{#- Componentes visuales reutilizables (sección 11.4).
+    Los colores y anchos variables se pasan en atributos data-* y los aplica app.js
+    (la CSP no permite estilos en línea). -#}
+
+{#- Estados: siempre color + ícono + palabra (nunca solo color) -#}
+{% set ESTADOS = {
+  "Controlada": ("ok", "bi-check-circle"),
+  "Completo": ("ok", "bi-check-circle"),
+  "Activa": ("ok", "bi-check-circle"),
+  "En alerta": ("alerta", "bi-exclamation-triangle"),
+  "Incompleto": ("alerta", "bi-exclamation-triangle"),
+  "Excedida": ("excedida", "bi-x-circle"),
+  "Inactiva": ("neutro", "bi-dash-circle"),
+} %}
+
+{% macro tarjeta(titulo=None, clase="", id=None) -%}
+<section class="cg-tarjeta {{ clase }}"{% if id %} id="{{ id }}"{% endif %}>
+  {% if titulo %}
+  <header class="cg-tarjeta__cabecera"><h2 class="cg-tarjeta__titulo">{{ titulo }}</h2></header>
+  {% endif %}
+  <div class="cg-tarjeta__cuerpo">{{ caller() }}</div>
+</section>
+{%- endmacro %}
+
+{% macro kpi(titulo, valor, detalle=None, icono=None) -%}
+<section class="cg-tarjeta cg-kpi">
+  <div class="cg-kpi__titulo">
+    {% if icono %}<i class="bi {{ icono }}" aria-hidden="true"></i>{% endif %}{{ titulo }}
+  </div>
+  <div class="cg-kpi__valor cg-numero">{{ valor }}</div>
+  {% if detalle %}<div class="cg-kpi__detalle">{{ detalle }}</div>{% endif %}
+  {% if caller %}{{ caller() }}{% endif %}
+</section>
+{%- endmacro %}
+
+{% macro chip_estado(estado) -%}
+{% set variante, icono = ESTADOS.get(estado, ("neutro", "bi-circle")) %}
+<span class="cg-chip cg-chip--{{ variante }}">
+  <i class="bi {{ icono }}" aria-hidden="true"></i>{{ estado }}
+</span>
+{%- endmacro %}
+
+{% macro punto_color(color) -%}
+<span class="cg-punto" data-cg-color="{{ color }}" aria-hidden="true"></span>
+{%- endmacro %}
+
+{% macro pildora_categoria(nombre, color) -%}
+<span class="cg-pildora" data-cg-color="{{ color }}" data-cg-color-texto="{{ color|color_texto }}">{{ nombre }}</span>
+{%- endmacro %}
+
+{#- Barra con escala hasta 125 % y marca vertical en el 100 % (lo planificado) -#}
+{% macro barra_presupuesto(porcentaje, estado) -%}
+{% set variante = ESTADOS.get(estado, ("neutro", ""))[0] %}
+{% set ancho = [[porcentaje, 0]|max, 125]|min / 125 * 100 %}
+<div class="cg-barra" role="img" aria-label="{{ '%.1f'|format(porcentaje) }} % del presupuesto, {{ estado }}">
+  <div class="cg-barra__relleno cg-barra__relleno--{{ variante }}" data-cg-ancho="{{ '%.2f'|format(ancho) }}"></div>
+  <div class="cg-barra__marca" aria-hidden="true"></div>
+</div>
+{%- endmacro %}
+
+{% macro estado_vacio(icono, texto, url=None, texto_boton=None) -%}
+<div class="cg-vacio">
+  <span class="cg-vacio__icono" aria-hidden="true"><i class="bi {{ icono }}"></i></span>
+  <p class="cg-vacio__texto">{{ texto }}</p>
+  {% if url and texto_boton %}<a class="btn btn-cg" href="{{ url }}">{{ texto_boton }}</a>{% endif %}
+</div>
+{%- endmacro %}
+
+{#- Un solo modal por página. El botón que lo abre indica la acción con:
+    data-bs-toggle="modal" data-bs-target="#modalConfirmacion" data-cg-accion="/ruta"
+    data-cg-titulo, data-cg-mensaje, data-cg-boton y data-cg-peligro (opcional) -#}
+{% macro modal_confirmacion() -%}
+<div class="modal fade cg-modal" id="modalConfirmacion" tabindex="-1" aria-labelledby="modalConfirmacionTitulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="#">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalConfirmacionTitulo">¿Confirmas esta acción?</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" data-cg-modal-mensaje></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-cg-secundario" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-cg" data-cg-modal-boton>Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro paginacion(pagina, total_paginas, endpoint, args={}) -%}
+{% if total_paginas > 1 %}
+<nav class="cg-paginacion" aria-label="Páginas">
+  {% if pagina > 1 %}
+  <a class="btn btn-cg-secundario" href="{{ url_for(endpoint, pagina=pagina - 1, **args) }}">
+    <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+  </a>
+  {% endif %}
+  <span class="cg-paginacion__texto">Página {{ pagina }} de {{ total_paginas }}</span>
+  {% if pagina < total_paginas %}
+  <a class="btn btn-cg-secundario" href="{{ url_for(endpoint, pagina=pagina + 1, **args) }}">
+    Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
+  </a>
+  {% endif %}
+</nav>
+{% endif %}
+{%- endmacro %}

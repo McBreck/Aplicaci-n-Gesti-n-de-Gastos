@@ -1,0 +1,21 @@
+{#- Contenido de la barra lateral; se usa en la barra fija (en_lateral) y en el offcanvas del celular -#}
+<a class="cg-marca" href="{{ url_inicio }}">
+  <span class="cg-logo" aria-hidden="true">C</span>
+  <span class="cg-marca__texto">ControlGastos</span>
+</a>
+
+<nav class="cg-nav-contenedor" aria-label="Secciones">
+  <ul class="cg-nav">
+    {% for item in navegacion %}
+    <li>
+      <a class="cg-nav__enlace{% if item.activo %} activo{% endif %}" href="{{ item.url }}"
+         {% if item.activo %}aria-current="page"{% endif %}
+         {% if en_lateral %}data-cg-tooltip-compacto data-bs-placement="right" data-bs-title="{{ item.texto }}"{% endif %}>
+        <i class="bi {{ item.icono }} cg-nav__icono" aria-hidden="true"></i>
+        <span class="cg-nav__texto">{{ item.texto }}</span>
+        {% if item.badge %}<span class="cg-nav__badge">{{ item.badge }}</span>{% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</nav>
