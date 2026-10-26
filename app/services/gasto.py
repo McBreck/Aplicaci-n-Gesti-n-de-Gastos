@@ -14,6 +14,7 @@ from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Gasto, MetodoPago
 from app.services import auditoria
+from app.services.calculo import porcentaje_de
 from app.services.categoria import obtener_categoria
 from app.services.formato import fecha_corta, hoy_lima
 from app.services.validacion import ErrorValidacion, interpretar_monto  # noqa: F401  (parte de la API del servicio)
@@ -295,9 +296,7 @@ class ResumenGastos:
     @property
     def porcentaje_completitud(self) -> float | None:
         """A8 = RC / TR × 100 (None si no hay registros)."""
-        if not self.cantidad:
-            return None
-        return round(self.completos / self.cantidad * 100, 1)
+        return porcentaje_de(self.completos, self.cantidad)
 
     @property
     def campo_mas_omitido(self) -> str | None:

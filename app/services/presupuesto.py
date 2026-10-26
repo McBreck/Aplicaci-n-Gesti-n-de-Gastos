@@ -12,6 +12,7 @@ from app.extensions import db
 from app.models import Categoria, Gasto, Presupuesto
 from app.models.presupuesto import ESTADO_EN_ALERTA, ESTADO_EXCEDIDA, estado_presupuesto
 from app.services import auditoria
+from app.services.calculo import porcentaje_de
 from app.services.formato import mes_anio
 from app.services.periodo import mes_anterior, texto_mes, ultimo_dia
 from app.services.validacion import ErrorValidacion, interpretar_monto
@@ -34,9 +35,7 @@ def periodo_editable(mes: date) -> bool:
 
 
 def _porcentaje(ejecutado: Decimal, planificado: Decimal) -> float | None:
-    if not planificado:
-        return None
-    return round(float(ejecutado / planificado * 100), 1)
+    return porcentaje_de(ejecutado, planificado)
 
 
 @dataclass(frozen=True)
