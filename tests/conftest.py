@@ -5,6 +5,8 @@ migración de Alembic al inicio de cada ejecución, así las pruebas validan el
 mismo esquema que producción. Después de cada prueba se eliminan los datos
 creados y se conservan los catálogos.
 """
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -12,12 +14,13 @@ from dotenv import load_dotenv
 from flask import g
 from flask.testing import FlaskClient
 from flask_migrate import upgrade
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.engine import make_url
 
 from app import create_app
 from app.extensions import db
-from app.models import Usuario
+from app.models import Categoria, Gasto, MetodoPago, Usuario
+from app.services.usuario import copiar_categorias_predeterminadas
 
 load_dotenv()
 
@@ -111,6 +114,61 @@ def crear_admin(crear_usuario):
         return crear_usuario(correo, nombre="PRUEBA Admin", rol="administrador")
 
     return _crear
+
+
+@pytest.fixture
+def crear_microemprendedor(crear_usuario, sesion):
+    """Cuenta PRUEBA con las 9 categorías predeterminadas copiadas (RN-11)."""
+
+    def _crear(correo: str = "prueba.ana@ejemplo.com", **campos) -> Usuario:
+        usuario = crear_usuario(correo, **campos)
+        copiar_categorias_predeterminadas(usuario)
+        sesion.commit()
+        return usuario
+
+    return _crear
+
+
+@pytest.fixture
+def id_categoria(sesion):
+    """Id de la categoría del usuario con ese nombre."""
+
+    def _id(usuario: Usuario, nombre: str) -> int:
+        return sesion.scalar(
+            select(Categoria.id).where(Categoria.usuario_id == usuario.id, Categoria.nombre == nombre)
+        )
+
+    return _id
+
+
+@pytest.fixture
+def cargar_gastos(sesion):
+    """Inserta gastos [(fecha, monto, categoría, descripción, método)] de un usuario.
+
+    None deja el campo vacío; es_completo lo calcula el modelo (RN-01).
+    """
+
+    def _cargar(usuario: Usuario, filas) -> list[Gasto]:
+        categorias = {
+            c.nombre: c.id for c in sesion.scalars(select(Categoria).where(Categoria.usuario_id == usuario.id))
+        }
+        metodos = {m.nombre: m.id for m in sesion.scalars(select(MetodoPago))}
+        gastos = []
+        for fecha, monto, categoria, descripcion, metodo in filas:
+            gasto = Gasto(
+                usuario_id=usuario.id,
+                fecha=date.fromisoformat(fecha) if isinstance(fecha, str) else fecha,
+                monto=Decimal(monto),
+                categoria_id=categorias[categoria] if categoria else None,
+                descripcion=descripcion,
+                metodo_pago_id=metodos[metodo] if metodo else None,
+            )
+            sesion.add(gasto)
+            gastos.append(gasto)
+        sesion.commit()
+        return gastos
+
+    return _cargar
 
 
 @pytest.fixture
