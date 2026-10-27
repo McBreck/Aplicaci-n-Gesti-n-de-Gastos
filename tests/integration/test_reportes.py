@@ -1,4 +1,4 @@
-"""CU-13 y CU-14: reporte en pantalla y PDF (CP-26, CP-27) y rendimiento orientativo (RNF-01)."""
+"""CU-13 y CU-14: reporte en pantalla y PDF (CP-26, CP-27), acceso (CP-29) y rendimiento orientativo (CP-28)."""
 import re
 import time
 from datetime import date, timedelta
@@ -134,14 +134,15 @@ def test_cp27_pdf_con_periodo_invalido(cliente, ana):
 # --- Acceso y rendimiento ------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("ruta", ["/reportes", "/reportes/generar", "/reportes/pdf"])
-def test_administrador_no_tiene_reportes_de_gastos(cliente, crear_admin, iniciar_sesion, ruta):
+def test_cp29_administrador_no_tiene_reportes_de_gastos(cliente, crear_admin, iniciar_sesion, ruta):
     crear_admin()
     iniciar_sesion("prueba.admin@ejemplo.com")
     assert cliente.get(ruta).status_code == 403
 
 
-def test_rnf01_reporte_de_500_gastos_en_menos_de_un_segundo(cliente, ana, cargar_gastos):
-    """Prueba orientativa: la medición oficial (CP-28) se hace en la fase 4.0 con cronómetro."""
+def test_cp28_orientativa_reporte_de_500_gastos_en_menos_de_un_segundo(cliente, ana, cargar_gastos):
+    """RNF-01, prueba orientativa: la medición oficial de CP-28 se hace con cronómetro
+    (docs/pruebas/4.4_rendimiento.md)."""
     categorias = ("Insumos y materia prima", "Servicios (luz, agua, gas)", "Transporte", None)
     metodos = ("Efectivo", "Yape", None)
     filas = [
