@@ -48,6 +48,9 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements-dev.txt
 
+      - name: Verificar el estilo PEP 8 (flake8, configuración en setup.cfg)
+        run: python -m flake8
+
       - name: Crear la base de pruebas
         run: psql -h localhost -U controlgastos -d controlgastos -c "CREATE DATABASE controlgastos_pruebas;"
 
