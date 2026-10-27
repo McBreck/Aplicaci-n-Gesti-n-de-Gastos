@@ -99,6 +99,14 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - `tests/test_trazabilidad.py` exige al menos una prueba para cada caso entre CP-01 y CP-32;
   - si cambia un mensaje o una pantalla, actualiza también su lista de verificación;
   - un defecto se corrige con `fix(4.x): … (DEF-nn)`.
+- **Despliegue (EDT 5.1–5.3)**:
+  - todo vive en `deploy/` y la guía es `docs/DESPLIEGUE_HOSTINGER.md`. Claude **nunca** ejecuta nada en un servidor real: el despliegue se hace con el usuario;
+  - los scripts bash usan `set -euo pipefail`, ponen todo dentro de `main()` y deben pasar shellcheck (lo revisa el CI);
+  - `.gitattributes` fuerza LF: un script con CRLF falla en Ubuntu;
+  - en el VPS:
+    - el código pertenece a root en `/srv/controlgastos`;
+    - el servicio corre como `controlgastos` con el grupo `www-data` (para el socket) y `controlgastos` como grupo adicional (para leer `.env`, 640 root:controlgastos);
+  - si cambia algo del despliegue, actualiza también la guía y vuelve a ensayarlo en Ubuntu 24.04 (WSL).
 - **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
 
 ## Decisiones confirmadas por los investigadores (26/10/2026)
@@ -190,6 +198,25 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
 - **Redirección a HTTPS**: la aplicación también redirige con 301 (además de Nginx), para cumplir RNF-08 aunque una petición llegue por HTTP.
 - **Fase 4.0**: no se definieron nombres para 4.1, 4.3 ni 4.7; `docs/pruebas/` cubre 4.2, 4.4, 4.5 y 4.6, como indica el plan.
 
+## Propuesto en la etapa 10, EDT 5.1–5.3 (pendiente de confirmación)
+
+- **Repositorio privado**: el VPS descarga el código con una llave de despliegue de solo lectura para root.
+- **Orden de la guía**:
+  - en 5.1 los scripts se copian con `scp` (el `git clone` es en 5.3);
+  - el cron del respaldo se instala en 5.3.7, cuando ya está el código;
+  - la restauración con datos se repite en 5.3.9.
+- **Permisos en el VPS**:
+  - el código es de root y la aplicación solo lo lee;
+  - `.env` es 640 root:controlgastos;
+  - el socket queda en `/run/controlgastos` (controlgastos:www-data, `umask` 007).
+- **`desplegar.sh`**: despliega `main` y hace un respaldo antes de migrar.
+- **GitHub Actions**: el workflow solo corre con la variable `DESPLIEGUE_HABILITADO=si` y entra con un usuario `despliegue` que solo puede ejecutar `desplegar.sh` con sudo.
+- **Python 3.11**: el PPA deadsnakes por defecto; uv 0.6.0 como alternativa (Python en `/opt/uv-python`).
+- **Administrador real**: sin el prefijo PRUEBA, para que `flask demo borrar` nunca lo elimine.
+
 ## Entorno local (Windows)
 - Python 3.11.9 instalado junto a 3.12: usar `py -3.11` para crear el venv (`py -3.11 -m venv .venv`).
 - PostgreSQL 16.15 como servicio `postgresql-x64-16`, puerto 5432, binarios en `C:\Program Files\PostgreSQL\16\bin`. La contraseña del superusuario está fuera del repositorio, en `%USERPROFILE%\controlgastos_postgres.txt`.
+- Gunicorn no funciona en Windows. El despliegue se ensayó en WSL 2 con Ubuntu 24.04 (instalador, systemd, Nginx con HTTPS autofirmado, respaldo y restauración, reinicio automático) y luego se borró la distribución.
+  - Para volver a ensayarlo: `wsl --install Ubuntu-24.04 --no-launch` y ejecutar los comandos como root con `wsl -d Ubuntu-24.04 -u root -- bash script.sh`.
+  - Los scripts de ensayo se escriben en archivos `.sh`: PowerShell interpreta `$(...)` dentro de las comillas.

@@ -168,12 +168,23 @@ app/
 └── static/          estilos, scripts y librerías locales (vendor/)
 migrations/          migraciones de Alembic
 tests/               pruebas unitarias y de integración
-docs/                especificación, cambios de diseño y pruebas de la fase 4.0
+deploy/              Nginx, systemd, cron y scripts del servidor
+docs/                especificación, cambios de diseño, pruebas de la fase 4.0 y guía de despliegue
 ```
 
 ## Despliegue
 
-Producción en un VPS Hostinger (Ubuntu 24.04, Nginx, Gunicorn, PostgreSQL 16, HTTPS con Let's Encrypt). La guía se escribirá en la Etapa 10, en `docs/DESPLIEGUE_HOSTINGER.md`.
+Producción en un VPS Hostinger KVM 1 con Ubuntu 24.04. Nginx atiende con HTTPS (Let's Encrypt) y pasa las peticiones a Gunicorn (3 workers, socket Unix, servicio systemd); la base es PostgreSQL 16, solo accesible desde el propio servidor, con respaldo diario.
+
+- **Guía paso a paso:** [docs/DESPLIEGUE_HOSTINGER.md](docs/DESPLIEGUE_HOSTINGER.md), en tres partes: 5.1 servidor, 5.2 base de datos y 5.3 publicación con HTTPS, con las evidencias que conviene capturar.
+- **Archivos listos en [deploy/](deploy/):**
+  - plantilla de Nginx y servicio de systemd;
+  - scripts de instalación, despliegue, respaldo y restauración;
+  - línea de cron del respaldo diario;
+  - `.env.example` de producción.
+- **Actualizar el servidor** después de fusionar en `main`: `sudo bash /srv/controlgastos/deploy/scripts/desplegar.sh`, o el workflow manual `.github/workflows/deploy.yml` (desactivado hasta la EDT 5.3).
+
+Gunicorn no funciona en Windows: en local se usa `flask run`. La integración continua comprueba en Ubuntu que la aplicación arranca en modo producción con Gunicorn y que exige `SECRET_KEY`.
 
 ## Historial de cambios
 

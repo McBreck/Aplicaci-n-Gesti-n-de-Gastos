@@ -4,6 +4,31 @@ Todos los cambios relevantes de ControlGastos se registran en este archivo, agru
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Secciones por entrada: **Agregado**, **Cambiado**, **Corregido**, **Eliminado**, **Seguridad**.
 
+## [EDT 5.1–5.3] Preparación del despliegue en Hostinger — 26/10/2026
+
+### Agregado
+- `deploy/`, todo listo para el VPS, sin ejecutar nada en ningún servidor:
+  - `scripts/instalar_servidor.sh` (idempotente) instala y configura:
+    - actualizaciones y zona horaria de Lima;
+    - el usuario `controlgastos`, sin acceso por SSH;
+    - UFW con 22, 80 y 443, y SSH solo con llave;
+    - PostgreSQL 16, Python 3.11 (deadsnakes o uv), Nginx y Certbot;
+  - `scripts/desplegar.sh`: código de `main`, dependencias, respaldo previo, migraciones, reinicio y comprobación de `/salud`;
+  - `scripts/respaldo_bd.sh`: `pg_dump -Fc` que conserva los 7 más recientes, con su línea de cron a las 02:30;
+  - `scripts/restaurar_bd.sh`: prueba en una base aparte, o restauración real con confirmación;
+  - `systemd/controlgastos.service`: Gunicorn con 3 workers, reinicio automático y endurecimiento básico;
+  - `nginx/controlgastos.conf`: plantilla con `DOMINIO`, socket Unix, estáticos con caché de 7 días, gzip y cabeceras de seguridad; Certbot agrega el HTTPS;
+  - `.env.example` de producción.
+- `.github/workflows/deploy.yml`: despliegue manual por SSH (`workflow_dispatch`). Está desactivado hasta que se defina la variable `DESPLIEGUE_HABILITADO`.
+- `docs/DESPLIEGUE_HOSTINGER.md`: guía para principiantes (5.1, 5.2 y 5.3) con:
+  - las evidencias de cada paso;
+  - los despliegues siguientes;
+  - el mantenimiento y la solución de problemas frecuentes.
+- Integración continua: shellcheck de los scripts y arranque en modo producción con Gunicorn. Se comprueba `/salud`, la redirección 301 y que no arranca sin `SECRET_KEY`.
+
+### Cambiado
+- `gunicorn.conf.py` crea el socket con `umask` 007: solo el grupo de Nginx (www-data) puede usarlo.
+
 ## [EDT 4.1–4.7] Soporte a la fase de pruebas — 26/10/2026
 
 ### Agregado
