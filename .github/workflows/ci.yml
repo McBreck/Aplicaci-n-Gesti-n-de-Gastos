@@ -62,3 +62,23 @@ jobs:
 
       - name: Ejecutar pruebas con cobertura de servicios
         run: pytest --cov=app/services --cov-report=term-missing
+
+      - name: Revisar los scripts de despliegue (shellcheck)
+        run: shellcheck deploy/scripts/*.sh
+
+      - name: Arrancar en modo producción con Gunicorn, como en el VPS
+        env:
+          APP_ENV: produccion
+          GUNICORN_BIND: 127.0.0.1:8000
+        run: |
+          gunicorn -c gunicorn.conf.py wsgi:app --daemon --pid gunicorn.pid
+          for _ in $(seq 1 20); do curl -fsS http://127.0.0.1:8000/salud && break; sleep 1; done
+          echo
+          curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' http://127.0.0.1:8000/login | tee respuesta.txt
+          grep -q '^301 https://' respuesta.txt
+          kill "$(cat gunicorn.pid)"
+          # Sin SECRET_KEY la aplicación no debe arrancar
+          if SECRET_KEY= GUNICORN_BIND=127.0.0.1:8001 timeout 30 gunicorn -c gunicorn.conf.py wsgi:app; then
+            echo "Gunicorn arrancó sin SECRET_KEY" >&2
+            exit 1
+          fi
