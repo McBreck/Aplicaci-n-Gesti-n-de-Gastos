@@ -130,6 +130,23 @@ def por_metodo(df: pd.DataFrame) -> pd.DataFrame:
     return agrupado.sort_values(["total", "metodo_pago"], ascending=[False, True], ignore_index=True)[columnas]
 
 
+def por_fecha(df: pd.DataFrame) -> pd.DataFrame:
+    """Cantidad, total y % por día con gastos, del más antiguo al más reciente (reportes)."""
+    columnas = ["fecha", "cantidad", "total", "porcentaje"]
+    if df.empty:
+        return pd.DataFrame(columns=columnas)
+    agrupado = (
+        df.groupby(df["fecha"].dt.date)
+        .agg(cantidad=("monto", "size"), total=("monto", "sum"))
+        .rename_axis("fecha")
+        .reset_index()
+    )
+    total_general = df["monto"].sum()
+    agrupado["porcentaje"] = [porcentaje_de(round(valor, 2), round(total_general, 2)) for valor in agrupado["total"]]
+    agrupado["total"] = agrupado["total"].round(2)
+    return agrupado.sort_values("fecha", ignore_index=True)[columnas]
+
+
 def evolucion_diaria(df: pd.DataFrame, desde: date, hasta: date) -> pd.DataFrame:
     """A5: total por día con relleno en cero y su acumulado."""
     dias = pd.date_range(desde, hasta, freq="D")
@@ -319,7 +336,9 @@ def _proyeccion(gastos_mes: pd.DataFrame, diaria: pd.DataFrame, mes: date, hoy: 
 
 
 def _datos_de_recomendacion(mes, hoy, gastos_mes, gastos_previos, categorias, ejecucion, completitud_mes, proyeccion):
-    anteriores = gastos_previos.groupby("categoria_id")["monto"].sum() if not gastos_previos.empty else pd.Series(dtype=float)
+    anteriores = (
+        gastos_previos.groupby("categoria_id")["monto"].sum() if not gastos_previos.empty else pd.Series(dtype=float)
+    )
     return recomendacion_service.DatosRecomendacion(
         mes=mes,
         hoy=hoy,
