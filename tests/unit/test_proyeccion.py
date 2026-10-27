@@ -23,7 +23,9 @@ def test_proyeccion_al_cierre_de_un_mes_de_31_dias():
     assert linea[-1][1] == 4873.03
 
 
-@pytest.mark.parametrize(("dias", "registros", "suficiente"), [(7, 10, True), (6, 10, False), (7, 9, False), (6, 9, False)])
+@pytest.mark.parametrize(
+    ("dias", "registros", "suficiente"), [(7, 10, True), (6, 10, False), (7, 9, False), (6, 9, False)]
+)
 def test_rn07_datos_minimos(dias, registros, suficiente):
     assert proyeccion.es_suficiente(dias, registros) is suficiente
     resultado = proyeccion.proyectar_mes(ACUMULADO_25_DIAS, dias_con_registros=dias, registros=registros, dias_mes=31)

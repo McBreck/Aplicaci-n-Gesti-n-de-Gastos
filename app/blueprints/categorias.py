@@ -61,7 +61,9 @@ def renombrar(id_categoria: int):
             flash(str(error), "error")
             return redirect(url_for("categorias.listar"))
         nueva = CategoriaForm(formdata=None, color=PALETA[0][0])
-        return _pagina(nueva, errores={categoria.id: str(error)}, abierta=categoria.id, nombre_propuesto=form.nombre.data)
+        return _pagina(
+            nueva, errores={categoria.id: str(error)}, abierta=categoria.id, nombre_propuesto=form.nombre.data
+        )
     flash("Categoría renombrada.", "exito")
     return redirect(url_for("categorias.listar"))
 

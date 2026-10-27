@@ -166,7 +166,8 @@ def _presupuestos(sesion, usuario, mes=OCTUBRE):
 def test_guardar_crea_actualiza_y_borra(ana, sesion, id_categoria):
     insumos, servicios = id_categoria(ana, "Insumos y materia prima"), id_categoria(ana, "Servicios (luz, agua, gas)")
     assert presupuesto_service.guardar_presupuesto(ana, OCTUBRE, {insumos: "400", servicios: "0"}) == 2
-    assert _presupuestos(sesion, ana) == {"Insumos y materia prima": Decimal("400.00"), "Servicios (luz, agua, gas)": Decimal("0.00")}
+    assert _presupuestos(sesion, ana) == {
+        "Insumos y materia prima": Decimal("400.00"), "Servicios (luz, agua, gas)": Decimal("0.00")}
 
     assert presupuesto_service.guardar_presupuesto(ana, OCTUBRE, {insumos: "450,50", servicios: ""}) == 2
     assert _presupuestos(sesion, ana) == {"Insumos y materia prima": Decimal("450.50")}

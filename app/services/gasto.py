@@ -78,7 +78,9 @@ def _validar_metodo(texto) -> int | None:
     return id_metodo
 
 
-def validar_datos(usuario_id: int, datos: dict, *, categoria_actual_id: int | None = None, hoy: date | None = None) -> dict:
+def validar_datos(
+    usuario_id: int, datos: dict, *, categoria_actual_id: int | None = None, hoy: date | None = None
+) -> dict:
     """RN-02: solo fecha y monto son obligatorios. Reúne todos los errores a la vez."""
     hoy = hoy or hoy_lima()
     limpios, errores = {}, {}

@@ -36,7 +36,9 @@ def test_cp30_login_con_token_csrf_funciona(cliente, crear_usuario, csrf_activo)
     assert respuesta.status_code == 302
 
 
-def test_cp30_acciones_post_sin_token_son_rechazadas(cliente, crear_admin, crear_usuario, iniciar_sesion, app, monkeypatch):
+def test_cp30_acciones_post_sin_token_son_rechazadas(
+    cliente, crear_admin, crear_usuario, iniciar_sesion, app, monkeypatch
+):
     crear_admin()
     cuenta = crear_usuario()
     iniciar_sesion("prueba.admin@ejemplo.com")

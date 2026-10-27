@@ -133,7 +133,9 @@ def test_cp14_edicion_con_errores_no_modifica(cliente, ana, cargar_gastos):
     assert gasto.monto == 24
 
 
-def test_cp14_categoria_inactiva_se_muestra_al_editar_pero_no_al_registrar(cliente, ana, sesion, cargar_gastos, id_categoria):
+def test_cp14_categoria_inactiva_se_muestra_al_editar_pero_no_al_registrar(
+    cliente, ana, sesion, cargar_gastos, id_categoria
+):
     (gasto,) = cargar_gastos(ana, [("2026-10-01", "5.00", "Otros", "Varios", "Efectivo")])
     sesion.get(Categoria, id_categoria(ana, "Otros")).activa = False
     sesion.commit()

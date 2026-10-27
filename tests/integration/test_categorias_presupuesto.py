@@ -110,7 +110,9 @@ def test_cp20_ver_y_guardar_presupuesto(cliente, ana, sesion, id_categoria):
     assert texto.count('placeholder="Sin presupuesto"') == 9
 
     insumos, alquiler = id_categoria(ana, "Insumos y materia prima"), id_categoria(ana, "Alquiler")
-    respuesta = cliente.post("/presupuesto?mes=2026-10", data={f"monto_{insumos}": "400", f"monto_{alquiler}": "900.00"})
+    respuesta = cliente.post(
+        "/presupuesto?mes=2026-10", data={f"monto_{insumos}": "400", f"monto_{alquiler}": "900.00"}
+    )
     assert respuesta.headers["Location"] == "/presupuesto?mes=2026-10"
     texto = _texto(cliente.get("/presupuesto?mes=2026-10"))
     assert "Presupuesto de Octubre 2026 guardado." in texto
@@ -166,7 +168,9 @@ def test_cp21_comparacion_con_los_datos_de_verificacion(cliente, ana, cargar_gas
     assert "94.5 %" in texto  # A9
     assert "S/ 1,930.00" in texto and "S/ 1,824.80" in texto
     assert "También gastaste S/ 42.00 sin categoría" in texto
-    chips = re.findall(r'cg-chip cg-chip--\w+">\s*<i class="bi [\w-]+" aria-hidden="true"></i>(Controlada|En alerta|Excedida)', texto)
+    chips = re.findall(
+        r'cg-chip cg-chip--\w+">\s*<i class="bi [\w-]+" aria-hidden="true"></i>(Controlada|En alerta|Excedida)', texto
+    )
     # Orden de las filas: Insumos, Servicios, Alquiler, Transporte, Empaques (+ estado general)
     assert chips.count("Excedida") == 1 and chips.count("Controlada") == 2
 
@@ -174,7 +178,9 @@ def test_cp21_comparacion_con_los_datos_de_verificacion(cliente, ana, cargar_gas
 def test_cp21_limites_y_alertas_en_la_navegacion(cliente, ana, cargar_gastos, presupuestar):
     mes = _mes_actual()
     hoy = hoy_lima()
-    presupuestar(ana, {"Insumos y materia prima": "100", "Mercadería": "100", "Alquiler": "100", "Transporte": "100"}, mes)
+    presupuestar(
+        ana, {"Insumos y materia prima": "100", "Mercadería": "100", "Alquiler": "100", "Transporte": "100"}, mes
+    )
     cargar_gastos(ana, [(hoy, "79.90", "Insumos y materia prima", "a", "Efectivo"),
                         (hoy, "80.00", "Mercadería", "b", "Efectivo"),
                         (hoy, "100.00", "Alquiler", "c", "Efectivo"),
