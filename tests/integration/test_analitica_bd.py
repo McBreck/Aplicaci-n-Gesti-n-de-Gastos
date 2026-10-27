@@ -89,6 +89,23 @@ def test_variacion_frente_al_mes_anterior_a_la_misma_fecha(ana, cargar_gastos):
     assert analisis.mensual["total"].tolist()[-2:] == [600.00, 120.00]  # A6
 
 
+def test_mes_sin_presupuesto_y_presupuesto_en_cero(ana, cargar_gastos, sesion, id_categoria):
+    cargar_gastos(ana, [("2026-10-05", "50.00", "Transporte", "Mototaxi", "Efectivo")])
+    sin_presupuesto = analitica.analizar_mes(ana.id, OCTUBRE, HOY)
+    assert sin_presupuesto.estado_presupuesto is None and sin_presupuesto.porcentaje_barra == 0.0
+
+    for nombre in ("Transporte", "Alquiler"):
+        sesion.add(Presupuesto(usuario_id=ana.id, categoria_id=id_categoria(ana, nombre), anio=2026, mes=10,
+                               monto=Decimal("0")))
+    sesion.commit()
+    en_cero = analitica.analizar_mes(ana.id, OCTUBRE, HOY)
+    assert en_cero.presupuesto_usado is None  # Σ planificado = 0: sin porcentaje
+    assert en_cero.estado_presupuesto == "Excedida"
+    assert en_cero.porcentaje_barra == 125.0  # se gastó sin presupuesto: barra llena
+    barras = {fila["categoria"]: fila["porcentaje_barra"] for fila in en_cero.mayor_ejecucion()}
+    assert barras == {"Transporte": 125.0, "Alquiler": 0.0}
+
+
 def test_mes_futuro_y_mes_pasado(ana, octubre):
     futuro = analitica.analizar_mes(ana.id, date(2026, 11, 1), HOY)
     assert futuro.sin_gastos and futuro.corte is None

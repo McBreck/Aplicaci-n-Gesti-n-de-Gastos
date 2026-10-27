@@ -91,6 +91,15 @@ def test_a4_por_metodo_con_sin_registrar(df):
     assert round(sum(totales.values()), 2) == 1866.80
 
 
+def test_por_fecha_para_los_reportes(df, vacio):
+    tabla = analitica.por_fecha(df)
+    assert len(tabla) == 9  # solo los días con gastos
+    assert round(tabla["total"].sum(), 2) == 1866.80 and tabla["cantidad"].sum() == 12
+    assert tabla["fecha"].is_monotonic_increasing
+    sin_gastos = analitica.por_fecha(vacio)
+    assert sin_gastos.empty and list(sin_gastos.columns) == ["fecha", "cantidad", "total", "porcentaje"]
+
+
 # --- A5 y A6 ---------------------------------------------------------------------------------------------
 
 def test_a5_evolucion_diaria_y_acumulada(df):

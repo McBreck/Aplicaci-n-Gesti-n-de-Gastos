@@ -28,6 +28,19 @@ def test_politica_acepta(contrasena):
     usuario_service.validar_contrasena(contrasena)
 
 
+@pytest.mark.parametrize(
+    ("nombre", "correo", "campo", "mensaje"),
+    [
+        ("   ", "prueba.ana@ejemplo.com", "nombre", "Escribe el nombre de la persona."),
+        ("PRUEBA Ana", "ana@sin-dominio", "correo", "Escribe un correo válido, por ejemplo nombre@negocio.com."),
+    ],
+)
+def test_datos_obligatorios_de_la_cuenta(app, sesion, nombre, correo, campo, mensaje):
+    with pytest.raises(usuario_service.ErrorUsuario) as error:
+        usuario_service.crear_administrador(nombre, correo, "clave1234")
+    assert (error.value.campo, str(error.value)) == (campo, mensaje)
+
+
 def test_mensaje_de_bloqueo_en_singular_y_plural():
     assert auth_service.mensaje_bloqueo(ahora_lima() + timedelta(seconds=30)).endswith("en 1 minuto.")
     assert auth_service.mensaje_bloqueo(ahora_lima() + timedelta(minutes=15)).endswith("en 15 minutos.")

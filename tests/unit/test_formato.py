@@ -39,7 +39,8 @@ def test_porcentaje_y_unir_lista():
     assert formato.porcentaje(66.6666) == "66.7 %"
     assert formato.porcentaje(100) == "100.0 %"
     assert formato.porcentaje(None) == "—"
-    assert formato.unir_lista(["categoría", "descripción", "método de pago"]) == "categoría, descripción y método de pago"
+    assert formato.unir_lista(["categoría", "descripción", "método de pago"]) == (
+        "categoría, descripción y método de pago")
     assert formato.unir_lista(["descripción", "método de pago"]) == "descripción y método de pago"
     assert formato.unir_lista(["categoría"]) == "categoría"
     assert formato.unir_lista([]) == ""
@@ -63,6 +64,10 @@ def test_fecha_hora_en_lima():
 )
 def test_fecha_corta(valor, esperado):
     assert formato.fecha_corta(valor) == esperado
+
+
+def test_fecha_corta_sin_valor():
+    assert formato.fecha_corta(None) == ""
 
 
 def test_mes_anio():

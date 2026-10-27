@@ -40,6 +40,14 @@ def test_crear_rechaza_datos_invalidos(ana, nombre, color, mensaje):
         categoria_service.crear_categoria(ana, nombre, color)
 
 
+def test_nombre_repetido_creado_al_mismo_tiempo(ana, monkeypatch):
+    # Dos peticiones validan a la vez; la segunda choca con el índice único al guardar
+    categoria_service.crear_categoria(ana, "Delivery", "#8B7BFF")
+    monkeypatch.setattr(categoria_service, "_validar_nombre", lambda _usuario_id, nombre, excepto_id=None: nombre)
+    with pytest.raises(ErrorCategoria, match="Ya tienes una categoría con ese nombre"):
+        categoria_service.crear_categoria(ana, "DELIVERY", "#8B7BFF")
+
+
 def test_el_mismo_nombre_en_otra_cuenta_esta_permitido(ana, crear_microemprendedor):
     luis = crear_microemprendedor("prueba.luis@ejemplo.com")
     categoria_service.crear_categoria(ana, "Delivery", "#8B7BFF")
