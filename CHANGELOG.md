@@ -4,6 +4,28 @@ Todos los cambios relevantes de ControlGastos se registran en este archivo, agru
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Secciones por entrada: **Agregado**, **Cambiado**, **Corregido**, **Eliminado**, **Seguridad**.
 
+## [EDT 3.7] Reportes y PDF — 26/10/2026
+
+### Agregado
+- P-07 Reportes (RF-19, RF-20; CU-13, CU-14):
+  - período en píldoras: Diario y Semanal con una fecha (la semana va de lunes a domingo), Mensual con los últimos 24 meses y Personalizado con "Desde" y "Hasta";
+  - agrupación por categoría (con punto de color), método de pago o fecha (solo los días con gastos);
+  - resultado en una tarjeta con negocio, período, fecha de emisión, tabla con cantidad, total y %, fila Total destacada (= suma de los gastos del período) y botón "Descargar PDF";
+  - período sin gastos: "No hay gastos registrados en este período", sin botón de PDF (flujo alterno 4a de CU-13);
+  - Personalizado sin las dos fechas pide elegirlas; si "Desde" es posterior a "Hasta", se intercambian con un aviso;
+  - en el celular la cantidad se muestra bajo el nombre del grupo para que la tabla no desborde (RNF-04).
+- `ReporteService` (`services/reporte.py`):
+  - `interpretar_solicitud` convierte la URL en período y agrupación; la misma solicitud arma la pantalla y el PDF;
+  - `generar` usa el DataFrame de la analítica, así el total coincide con el dashboard del mismo período;
+  - `generar_pdf` arma un A4 con ReportLab: negocio (o el nombre del usuario si no tiene negocio), "Reporte de gastos", período, agrupación, fecha de emisión en America/Lima, tabla con el encabezado repetido en cada página, fila Total, "Total del período: S/ … (N gastos)" y pie "Generado por ControlGastos" con el número de página.
+- `/reportes/pdf` descarga `reporte_gastos_AAAAMMDD_AAAAMMDD.pdf`, armado en memoria. Si falla, muestra "No se pudo generar el PDF. Vuelve a intentarlo." y vuelve al reporte (flujo alterno 2a de CU-14).
+- `analitica.por_fecha`: cantidad, total y % por día con gastos.
+- Pruebas CP-26 y CP-27, y prueba orientativa de RNF-01: el reporte de 500 gastos se genera en menos de 1 s con cada agrupación. `tests/utilidades_pdf.py` lee el texto de los PDF con la biblioteca estándar.
+
+### Seguridad
+- El reporte y el PDF solo leen los gastos del usuario autenticado; el administrador recibe 403.
+- El texto del usuario (como el nombre del negocio) se escapa antes de pasarlo a ReportLab, y el PDF se descarga con `Cache-Control: no-store`.
+
 ## [EDT 3.6] Dashboard — 26/10/2026
 
 ### Agregado

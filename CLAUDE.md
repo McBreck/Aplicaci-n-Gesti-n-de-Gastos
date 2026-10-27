@@ -82,6 +82,12 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - toda ruta bajo `/api/` responde errores en JSON (401 sin sesión, 403, 404);
   - Chart.js se carga solo en páginas con gráficos (`{% block scripts %}`, RNF-02);
   - el JS de cada pantalla va en su propio archivo (`static/js/dashboard.js`), y los textos del usuario se escriben con `textContent`.
+- **Reportes (EDT 3.7)**:
+  - `reporte.interpretar_solicitud(request.args, hoy)` devuelve la `SolicitudReporte`, y `como_argumentos()` rearma su URL (de la pantalla al PDF);
+  - `reporte.generar` usa `analitica.construir_dataframe`, la misma fuente que el dashboard;
+  - el PDF se arma en memoria y nunca se guarda en el servidor; el texto del usuario pasa por `escape()` antes de llegar a ReportLab;
+  - la tabla del reporte no es apilable: es compacta y, en el celular, la cantidad pasa bajo el grupo;
+  - en las pruebas, el texto del PDF se lee con `tests/utilidades_pdf.texto_pdf`.
 - **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
 
 ## Decisiones confirmadas por los investigadores (26/10/2026)
@@ -112,11 +118,15 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   | CP-19 | Desactivar categoría |
   | CP-20 | Presupuesto y copia del mes anterior |
   | CP-21 | Comparación y alertas (límites 79.9, 80, 100 y 100.1 %) |
+  | CP-22 | Los cuatro KPI del dashboard coinciden con el listado del mismo período |
+  | CP-23 | Datos de los gráficos (`/api/dashboard`): solo del usuario y coherentes con el total |
+  | CP-24 | Proyección (o "Datos insuficientes") y recomendaciones con acción |
+  | CP-25 | Estados especiales (mes sin gastos, sin presupuesto, error de gráficos), tarjetas rápidas y actividad |
   | CP-29 | Control de acceso (403 y 404) |
   | CP-30 | CSRF |
   | CP-31 | Contraseñas protegidas |
 
-  CP-22 a CP-28 y CP-32 a CP-34 se definen en sus etapas.
+  CP-26 y CP-27 están propuestos en la EDT 3.7; CP-28 y CP-32 a CP-34 se definen en sus etapas.
 - **Detalles aprobados**:
   - P-08 solo gestiona cuentas de microemprendedor; las de administrador se crean con `flask crear-admin`;
   - la contraseña nueva debe ser distinta de la actual;
@@ -133,19 +143,24 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - R3 y R6 solo aplican al mes en curso;
   - "Sin categoría" no genera R5 ni R7;
   - en empates gana la prioridad, luego el orden de la tabla (R5 antes que R7) y luego el valor más alto.
+- **Dashboard (confirmado tras la EDT 3.6)**:
+  - las tarjetas rápidas se eligen por cantidad de registros en los últimos 30 días y muestran el monto del mes; el "+" elige la categoría en el registro rápido y, sin JavaScript, abre P-03 con la categoría marcada;
+  - el selector de mes no permite meses futuros;
+  - en un mes anterior, la actividad reciente muestra los últimos 7 días hasta el corte de ese mes.
 
-## Propuesto en la EDT 3.6 (pendiente de confirmación)
+## Propuesto en la EDT 3.7 (pendiente de confirmación)
 
 - **Casos de prueba**:
 
   | CP | Qué cubre |
   |---|---|
-  | CP-22 | Los cuatro KPI del dashboard coinciden con el listado del mismo período |
-  | CP-23 | Datos de los gráficos (`/api/dashboard`): solo del usuario y coherentes con el total |
-  | CP-24 | Proyección (o "Datos insuficientes") y recomendaciones con acción |
-  | CP-25 | Estados especiales (mes sin gastos, sin presupuesto, error de gráficos), tarjetas rápidas y actividad |
-- **Tarjetas rápidas**: se eligen por cantidad de registros en los últimos 30 días y muestran el monto del mes. El "+" elige la categoría en el registro rápido; sin JavaScript abre P-03 con la categoría marcada.
-- **Dashboard de otro mes**: el selector no permite meses futuros. La actividad reciente muestra los últimos 7 días hasta el corte del mes elegido.
+  | CP-26 | Reporte en pantalla: los cuatro tipos de período, las tres agrupaciones, total = suma del período, período sin gastos y solo datos del usuario |
+  | CP-27 | PDF: nombre del archivo, mismos datos que la pantalla y error al generarlo |
+
+- **Períodos**: la semana va de lunes a domingo y contiene la fecha elegida (igual que el gráfico semanal). El mensual ofrece los últimos 24 meses; para fechas más antiguas se usa Personalizado.
+- **Orden de las filas**: por categoría y por método, de mayor a menor total (con "Sin categoría" y "Sin registrar" como un grupo más); por fecha, solo los días con gastos, del más antiguo al más reciente.
+- **PDF**: A4 vertical. Si el usuario no tiene nombre de negocio, va su nombre. Incluye la agrupación y el número de página. En un período sin gastos no se ofrece el botón de PDF.
+- **Celular**: la cantidad va bajo el nombre del grupo ("2 gastos") y se oculta su columna, para que la tabla quepa en 320 px sin desplazamiento horizontal.
 
 ## Entorno local (Windows)
 - Python 3.11.9 instalado junto a 3.12: usar `py -3.11` para crear el venv (`py -3.11 -m venv .venv`).
