@@ -66,6 +66,43 @@ def test_meses_del_periodo(hoy, meses, con_presupuesto):
     assert demo.meses_con_presupuesto(hoy) == con_presupuesto
 
 
+# --- Rendimiento (CP-28) -------------------------------------------------------------------------
+
+SEPTIEMBRE = date(2026, 9, 1)
+
+
+def test_plan_de_rendimiento_con_500_gastos_en_el_mes():
+    gastos = demo.planificar_rendimiento(SEPTIEMBRE, HOY)
+    assert len(gastos) == 500 and gastos == demo.planificar_rendimiento(SEPTIEMBRE, HOY)
+    assert (gastos[0].fecha, gastos[-1].fecha) == (SEPTIEMBRE, date(2026, 9, 30))
+    assert len({gasto.fecha for gasto in gastos}) == 30  # todos los días del mes
+    assert {gasto.categoria for gasto in gastos} - {None} == set(demo.PRESUPUESTO_MENSUAL) | {"Otros"}
+    # Los gastos fijos caen en su día: un solo alquiler, el 1 del mes
+    assert [gasto.fecha for gasto in gastos if gasto.monto == Decimal("900.00")] == [SEPTIEMBRE]
+
+
+def test_rendimiento_del_mes_en_curso_hasta_hoy():
+    gastos = demo.planificar_rendimiento(date(2026, 10, 1), HOY)
+    assert len(gastos) == 500 and gastos[-1].fecha == HOY
+
+
+@pytest.mark.parametrize(
+    ("texto", "esperado"),
+    [(None, SEPTIEMBRE), ("", SEPTIEMBRE), ("2026-08", date(2026, 8, 1)), (" 2026-10 ", date(2026, 10, 1))],
+)
+def test_mes_de_rendimiento(texto, esperado):
+    assert demo.mes_de_rendimiento(texto, HOY) == esperado
+
+
+@pytest.mark.parametrize(
+    ("texto", "mensaje"),
+    [("2026-11", "posterior al actual"), ("septiembre", "AAAA-MM"), ("2026-13", "AAAA-MM"), ("2026-09-01", "AAAA-MM")],
+)
+def test_mes_de_rendimiento_invalido(texto, mensaje):
+    with pytest.raises(demo.ErrorDemo, match=mensaje):
+        demo.mes_de_rendimiento(texto, HOY)
+
+
 # --- Creación ------------------------------------------------------------------------------------
 
 def test_crear_la_cuenta_de_demostracion(sesion):
@@ -92,6 +129,19 @@ def test_la_demostracion_muestra_alertas_proyeccion_y_recomendaciones(sesion):
     assert analisis.proyeccion.suficiente  # P1 con más de 7 días y 10 registros
     assert {ESTADO_EN_ALERTA, ESTADO_EXCEDIDA} <= {fila["estado"] for fila in analisis.mayor_ejecucion(8)}
     assert analisis.recomendaciones
+
+
+def test_crear_la_cuenta_de_rendimiento(sesion):
+    resumen = demo.crear_rendimiento(CONTRASENA, SEPTIEMBRE, HOY)
+    usuario = sesion.scalar(select(Usuario).where(Usuario.correo == demo.CORREO_RENDIMIENTO))
+    assert (usuario.nombre, usuario.nombre_negocio) == ("PRUEBA Rendimiento", "PRUEBA Rendimiento")
+    assert resumen.gastos == 500 == _contar(sesion, Gasto, Gasto.usuario_id == usuario.id)
+    assert (resumen.desde, resumen.hasta, resumen.presupuestos) == (SEPTIEMBRE, date(2026, 9, 30), 0)
+    with pytest.raises(demo.ErrorDemo, match="ya existe"):
+        demo.crear_rendimiento(CONTRASENA, SEPTIEMBRE, HOY)
+    # Convive con la cuenta de demostración y `demo borrar` elimina las dos
+    demo.crear(CONTRASENA, HOY)
+    assert demo.borrar().cuentas == 2
 
 
 def test_no_se_crea_dos_veces_ni_con_una_contrasena_debil(sesion):

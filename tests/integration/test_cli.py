@@ -1,4 +1,5 @@
-"""Comandos `flask crear-admin`, `flask demo crear` y `flask demo borrar`."""
+"""Comandos `flask crear-admin` y `flask demo` (crear, rendimiento y borrar)."""
+import re
 from datetime import timedelta
 
 import pytest
@@ -6,7 +7,8 @@ from sqlalchemy import select
 
 from app import demo
 from app.models import Usuario
-from app.services.formato import fecha, hoy_lima
+from app.services.formato import fecha, hoy_lima, mes_anio
+from app.services.periodo import mes_anterior, texto_mes, ultimo_dia
 
 
 def _crear_admin(ejecutor_cli, correo="Admin@Ejemplo.com", contrasena="clave1234"):
@@ -83,6 +85,28 @@ def test_demo_crear_rechaza_una_contrasena_debil(ejecutor_cli, sesion):
     resultado = _demo_crear(ejecutor_cli, contrasena="corta")
     assert resultado.exit_code != 0
     assert "al menos 8 caracteres e incluir letras y números" in resultado.output
+    assert sesion.scalar(select(Usuario.id)) is None
+
+
+def test_demo_rendimiento_para_cp28(ejecutor_cli, cliente, iniciar_sesion):
+    mes = mes_anterior(hoy_lima().replace(day=1))  # por defecto, el mes anterior completo
+    resultado = ejecutor_cli.invoke(args=["demo", "rendimiento", "--contrasena", "Demo2026"])
+    assert resultado.exit_code == 0, resultado.output
+    assert f"Correo: {demo.CORREO_RENDIMIENTO}" in resultado.output
+    assert f"Gastos: 500 del {fecha(mes)} al {fecha(ultimo_dia(mes))}" in resultado.output
+    assert f"genera el reporte mensual de {mes_anio(mes)}" in resultado.output
+    repetido = ejecutor_cli.invoke(args=["demo", "rendimiento", "--contrasena", "Demo2026"])
+    assert repetido.exit_code != 0 and "ya existe" in repetido.output
+
+    iniciar_sesion(demo.CORREO_RENDIMIENTO, "Demo2026")
+    reporte = cliente.get(f"/reportes/generar?tipo=mensual&mes={texto_mes(mes)}").get_data(as_text=True)
+    assert ">500<" in re.search(r'<tr class="cg-fila-total">.*?</tr>', reporte, re.S).group(0)
+
+
+def test_demo_rendimiento_valida_el_mes_antes_de_pedir_la_contrasena(ejecutor_cli, sesion):
+    resultado = ejecutor_cli.invoke(args=["demo", "rendimiento", "--mes", "septiembre"])
+    assert resultado.exit_code != 0
+    assert "Escribe el mes como AAAA-MM" in resultado.output and "Contraseña" not in resultado.output
     assert sesion.scalar(select(Usuario.id)) is None
 
 
