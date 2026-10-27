@@ -108,6 +108,7 @@ def _registrar_seguridad(app: Flask) -> Talisman:
     return Talisman(
         app,
         force_https=forzar_https,
+        force_https_permanent=True,  # HTTP → HTTPS con 301 (RNF-08), igual que Nginx
         strict_transport_security=forzar_https,
         session_cookie_secure=app.config["SESSION_COOKIE_SECURE"],
         content_security_policy=POLITICA_CSP,
