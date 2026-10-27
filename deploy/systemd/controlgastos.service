@@ -1,0 +1,42 @@
+# Servicio de ControlGastos (EDT 5.3): Gunicorn con 3 workers en un socket Unix para Nginx.
+#
+# Instalar en el VPS:
+#   sudo install -m 644 /srv/controlgastos/deploy/systemd/controlgastos.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now controlgastos
+# Ver el estado y los registros:
+#   systemctl status controlgastos
+#   journalctl -u controlgastos -n 50
+
+[Unit]
+Description=ControlGastos (Gunicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=controlgastos
+# El grupo www-data permite que Nginx use el socket; controlgastos permite leer el .env
+Group=www-data
+SupplementaryGroups=controlgastos
+WorkingDirectory=/srv/controlgastos
+EnvironmentFile=/srv/controlgastos/.env
+# Crea /run/controlgastos (controlgastos:www-data, 0750) para el socket de Gunicorn
+RuntimeDirectory=controlgastos
+RuntimeDirectoryMode=0750
+ExecStart=/srv/controlgastos/venv/bin/gunicorn -c gunicorn.conf.py wsgi:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=10
+Restart=always
+RestartSec=3
+
+# Endurecimiento: la aplicación no escribe en disco (registros en journald, PDF en memoria)
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
