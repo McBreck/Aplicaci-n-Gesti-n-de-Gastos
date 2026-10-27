@@ -1,0 +1,10 @@
+# Respaldo diario de la base de ControlGastos a las 02:30, hora de Lima (RNF-14).
+#
+# Instalar en el VPS:
+#   sudo install -m 644 /srv/controlgastos/deploy/cron/controlgastos-respaldo /etc/cron.d/controlgastos-respaldo
+# Ver los respaldos:   ls -lh /var/backups/controlgastos
+# Ver el registro:     tail /var/log/controlgastos-respaldo.log
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+30 2 * * * root bash /srv/controlgastos/deploy/scripts/respaldo_bd.sh >> /var/log/controlgastos-respaldo.log 2>&1
