@@ -110,6 +110,11 @@ Pide una contraseña (mínimo 8 caracteres, con letras y números) y crea la cue
 Los montos salen de una semilla fija: con la misma fecha se generan siempre los mismos datos. Si la cuenta ya existe, el comando no cambia nada.
 
 ```powershell
+flask demo rendimiento
+```
+Crea la cuenta **PRUEBA Rendimiento** (`prueba.rendimiento@controlgastos.test`) con 500 gastos en el mes anterior, para la prueba de rendimiento CP-28 ([docs/pruebas/4.4_rendimiento.md](docs/pruebas/4.4_rendimiento.md)). Con `--mes AAAA-MM` se elige otro mes, que no puede ser futuro.
+
+```powershell
 flask demo borrar
 ```
 Muestra las cuentas cuyo nombre empieza con `PRUEBA` y, si confirmas con `s`, las borra **por completo**: gastos, presupuestos, categorías y eventos de la bitácora. Las cuentas reales no se tocan. Con `--si` no pide confirmación.
@@ -128,7 +133,8 @@ Muestra las cuentas cuyo nombre empieza con `PRUEBA` y, si confirmas con `s`, la
 | `pytest --cov=app/services` | Pruebas con cobertura de la capa de servicios | Etapa 1 |
 | `flask demo crear` | Crea la cuenta "PRUEBA Panadería" con 60 días de gastos y presupuestos | Etapa 8 |
 | `flask demo borrar` | Borra por completo las cuentas `PRUEBA` y todos sus datos (`--si` sin confirmar) | Etapa 8 |
-| `flask demo rendimiento` | Genera 500 gastos `PRUEBA` en un mes (CP-28) | Etapa 9 |
+| `flask demo rendimiento` | Crea la cuenta "PRUEBA Rendimiento" con 500 gastos en un mes (CP-28; `--mes AAAA-MM`) | Etapa 9 |
+| `python -m flake8` | Verifica el estilo PEP 8 | Etapa 8 |
 
 ## Pruebas y calidad
 
@@ -137,18 +143,16 @@ Las pruebas usan una base PostgreSQL propia (`TEST_DATABASE_URL`), que se borra 
 ```powershell
 pytest                                   # toda la suite
 pytest --cov=app/services                # cobertura de los servicios (RNF-15: 70 % o más)
-pytest tests/unit/test_demo.py -v        # un solo archivo, con el nombre de cada prueba
+pytest -k cp26 -v                        # solo las pruebas de un caso de prueba
+python -m flake8                         # estilo PEP 8 (RNF-15); sin mensajes = sin observaciones
 ```
 
-- `tests/unit/`: reglas de los servicios (una carpeta por capa, un archivo por servicio).
+- `tests/unit/`: reglas de los servicios, un archivo por servicio.
 - `tests/integration/`: rutas, pantallas, API, seguridad y comandos de consola. Los nombres incluyen el caso de prueba (`test_cp26_...`).
+- `tests/test_trazabilidad.py`: falla si algún caso entre CP-01 y CP-32 se queda sin prueba automatizada.
+- El estilo se revisa con flake8 (incluido en `requirements-dev.txt`), configurado en `setup.cfg` con líneas de hasta 120 caracteres.
 
-**Estilo PEP 8 (RNF-15).** La configuración está en `setup.cfg` (líneas de hasta 120 caracteres). flake8 no forma parte de las dependencias del proyecto; instálalo aparte y ejecútalo desde la raíz:
-```powershell
-pip install flake8==7.4.1
-python -m flake8
-```
-Sin mensajes significa que no hay observaciones.
+Las listas de verificación de la fase 4.0 (funcionales, rendimiento, seguridad, responsivo y SUS) y la plantilla de defectos están en [docs/pruebas/](docs/pruebas/).
 
 ## Estructura
 
@@ -164,7 +168,7 @@ app/
 └── static/          estilos, scripts y librerías locales (vendor/)
 migrations/          migraciones de Alembic
 tests/               pruebas unitarias y de integración
-docs/                especificación y registro de cambios de diseño
+docs/                especificación, cambios de diseño y pruebas de la fase 4.0
 ```
 
 ## Despliegue

@@ -4,6 +4,27 @@ Todos los cambios relevantes de ControlGastos se registran en este archivo, agru
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Secciones por entrada: **Agregado**, **Cambiado**, **Corregido**, **Eliminado**, **Seguridad**.
 
+## [EDT 4.1–4.7] Soporte a la fase de pruebas — 26/10/2026
+
+### Agregado
+- `docs/pruebas/` para la fase 4.0:
+  - índice con el catálogo CP-01 a CP-34 (requisitos, tipo de prueba y documento);
+  - 4.2 pruebas funcionales: CP-01 a CP-27 con pasos, resultado esperado y el comando de sus pruebas automatizadas;
+  - 4.4 rendimiento: cronometraje manual de CP-28, con 10 repeticiones y el promedio menor que 1 s como criterio;
+  - 4.5 seguridad: CP-29 a CP-32 y revisión OWASP Top 10 2021;
+  - 4.6 responsivo y SUS: matriz de pantallas por ancho y navegador (CP-33) y cuestionario SUS con su cálculo (CP-34, fuera de la app);
+  - plantilla de defectos DEF-nn con severidad, estados y el commit de corrección.
+- `flask demo rendimiento`: cuenta "PRUEBA Rendimiento" con 500 gastos en un mes (el anterior, o el de `--mes AAAA-MM`) para CP-28. Valida el mes antes de pedir la contraseña.
+- Pruebas automatizadas:
+  - CP-30 revisa todas las rutas POST de la aplicación, también las que se agreguen después;
+  - CP-32 comprueba en modo producción la redirección a HTTPS con 301, HSTS y la cookie segura;
+  - la prueba orientativa de rendimiento y la de acceso a reportes llevan su código (CP-28 y CP-29);
+  - `tests/test_trazabilidad.py` falla si un caso entre CP-01 y CP-32 queda sin prueba.
+- flake8 7.4.1 en `requirements-dev.txt` y un paso de estilo PEP 8 en la integración continua.
+
+### Cambiado
+- En producción, la aplicación redirige de HTTP a HTTPS con 301 (antes 302), como pide RNF-08.
+
 ## [EDT 3.8] Pruebas unitarias y cierre de la fase 3.0 — 26/10/2026
 
 ### Agregado

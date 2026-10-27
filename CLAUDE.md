@@ -88,12 +88,17 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - el PDF se arma en memoria y nunca se guarda en el servidor; el texto del usuario pasa por `escape()` antes de llegar a ReportLab;
   - la tabla del reporte no es apilable: es compacta y, en el celular, la cantidad pasa bajo el grupo;
   - en las pruebas, el texto del PDF se lee con `tests/utilidades_pdf.texto_pdf`.
-- **Datos de demostración (EDT 3.8)**:
+- **Datos de demostración (EDT 3.8 y 4.4)**:
   - `app/demo.py` no es un servicio de negocio: arma datos PRUEBA para demostraciones y pruebas;
-  - `planificar_gastos(hoy)` es una función pura y reproducible (semilla fija);
-  - `crear()` guarda todo en una transacción y `borrar()` elimina las cuentas PRUEBA por completo;
-  - `flask demo rendimiento` (etapa 9) va en el mismo módulo y también usa el prefijo PRUEBA.
-- **Estilo**: `python -m flake8` desde la raíz, con la configuración de `setup.cfg` (PEP 8, líneas de hasta 120 caracteres). Cada servicio tiene su archivo de pruebas en `tests/unit/`.
+  - `planificar_gastos(hoy)` y `planificar_rendimiento(mes, hoy)` son funciones puras y reproducibles (semilla fija);
+  - `crear()` y `crear_rendimiento()` guardan todo en una transacción; `borrar()` elimina las cuentas PRUEBA por completo.
+- **Estilo**: `python -m flake8` desde la raíz, con la configuración de `setup.cfg` (PEP 8, líneas de hasta 120 caracteres). La integración continua también lo ejecuta. Cada servicio tiene su archivo de pruebas en `tests/unit/`.
+- **Pruebas de la fase 4.0**:
+  - las listas de verificación están en `docs/pruebas/` (4.2, 4.4, 4.5, 4.6 y la plantilla DEF-nn);
+  - las pruebas de cada caso se llaman `test_cpNN_...` y se ejecutan con `pytest -k cpNN -v`;
+  - `tests/test_trazabilidad.py` exige al menos una prueba para cada caso entre CP-01 y CP-32;
+  - si cambia un mensaje o una pantalla, actualiza también su lista de verificación;
+  - un defecto se corrige con `fix(4.x): … (DEF-nn)`.
 - **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
 
 ## Decisiones confirmadas por los investigadores (26/10/2026)
@@ -134,7 +139,7 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   | CP-30 | CSRF |
   | CP-31 | Contraseñas protegidas |
 
-  CP-28 y CP-32 a CP-34 se definen en la etapa 9 (EDT 4.1–4.7).
+  CP-28 y CP-32 a CP-34 están propuestos en la etapa 9 (sección siguiente).
 - **Detalles aprobados**:
   - P-08 solo gestiona cuentas de microemprendedor; las de administrador se crean con `flask crear-admin`;
   - la contraseña nueva debe ser distinta de la actual;
@@ -162,15 +167,28 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - el PDF es A4 vertical, con la agrupación y el número de página; si el usuario no tiene nombre de negocio, va su nombre;
   - en un período sin gastos no se ofrece el botón de PDF;
   - en el celular la cantidad va bajo el nombre del grupo ("2 gastos") y se oculta su columna, para que la tabla quepa en 320 px.
+- **Demostración y estilo (confirmado tras la EDT 3.8)**:
+  - cuenta "PRUEBA Panadería" (`prueba.panaderia@controlgastos.test`), con la contraseña elegida al crearla, 60 días hasta hoy con semilla fija, cerca del 20 % de gastos incompletos (el método de pago es el más omitido) y el presupuesto de cada mes desde enero de 2026;
+  - "Otros" queda sin presupuesto y Transporte tiene un monto bajo a propósito, para que se vean Excedida y las recomendaciones;
+  - `flask demo borrar` borra todas las cuentas cuyo nombre empieza con "PRUEBA" (también las de administrador), con sus gastos, presupuestos, categorías y bitácora; pide confirmación (s/n) salvo con `--si`;
+  - PEP 8 con líneas de hasta 120 caracteres; `flake8==7.4.1` está en `requirements-dev.txt` (cambio aceptado sobre la especificación) y se ejecuta en el CI.
 
-## Propuesto en la EDT 3.8 (pendiente de confirmación)
+## Propuesto en la etapa 9, EDT 4.1–4.7 (pendiente de confirmación)
 
-- **Cuenta de demostración**:
-  - nombre y negocio "PRUEBA Panadería", correo `prueba.panaderia@controlgastos.test`; la contraseña se elige al crearla, como en `flask crear-admin`;
-  - 60 días hasta hoy con semilla fija, cerca del 20 % de gastos incompletos (el método de pago es el más omitido) y el presupuesto de cada mes desde enero de 2026;
-  - "Otros" queda sin presupuesto y Transporte tiene un monto bajo a propósito, para que se vean Excedida y las recomendaciones.
-- **`flask demo borrar`**: borra todas las cuentas cuyo nombre empieza con "PRUEBA" (también las de administrador), con sus gastos, presupuestos, categorías y eventos de la bitácora. Pide confirmación (s/n) salvo con `--si`.
-- **PEP 8**: líneas de hasta 120 caracteres (`setup.cfg`). Se verifica con flake8 instalado aparte, porque `requirements-dev.txt` está fijado en la especificación. Propuesta: agregar `flake8==7.4.1` a `requirements-dev.txt` y un paso "Estilo PEP 8" al CI.
+- **Casos de prueba**:
+
+  | CP | Qué cubre |
+  |---|---|
+  | CP-28 | Reporte de un mes con 500 gastos en menos de 1 s: promedio de 10 mediciones con cronómetro |
+  | CP-32 | HTTPS con redirección 301 desde HTTP (en el servidor, después de la EDT 5.3) |
+  | CP-33 | Diseño responsivo sin desplazamiento horizontal desde 360 px en Chrome, Edge, Firefox y Chrome Android |
+  | CP-34 | Usabilidad con el cuestionario SUS (meta ≥ 68), aplicado fuera de la app |
+
+- **`flask demo rendimiento`**:
+  - cuenta "PRUEBA Rendimiento" (`prueba.rendimiento@controlgastos.test`), sin presupuesto, con 500 gastos en el mes anterior (o el de `--mes AAAA-MM`, nunca futuro);
+  - los gastos fijos caen en su día y el resto son compras variables repartidas entre todos los días.
+- **Redirección a HTTPS**: la aplicación también redirige con 301 (además de Nginx), para cumplir RNF-08 aunque una petición llegue por HTTP.
+- **Fase 4.0**: no se definieron nombres para 4.1, 4.3 ni 4.7; `docs/pruebas/` cubre 4.2, 4.4, 4.5 y 4.6, como indica el plan.
 
 ## Entorno local (Windows)
 - Python 3.11.9 instalado junto a 3.12: usar `py -3.11` para crear el venv (`py -3.11 -m venv .venv`).
