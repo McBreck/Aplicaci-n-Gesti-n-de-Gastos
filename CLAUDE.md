@@ -88,6 +88,12 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - el PDF se arma en memoria y nunca se guarda en el servidor; el texto del usuario pasa por `escape()` antes de llegar a ReportLab;
   - la tabla del reporte no es apilable: es compacta y, en el celular, la cantidad pasa bajo el grupo;
   - en las pruebas, el texto del PDF se lee con `tests/utilidades_pdf.texto_pdf`.
+- **Datos de demostración (EDT 3.8)**:
+  - `app/demo.py` no es un servicio de negocio: arma datos PRUEBA para demostraciones y pruebas;
+  - `planificar_gastos(hoy)` es una función pura y reproducible (semilla fija);
+  - `crear()` guarda todo en una transacción y `borrar()` elimina las cuentas PRUEBA por completo;
+  - `flask demo rendimiento` (etapa 9) va en el mismo módulo y también usa el prefijo PRUEBA.
+- **Estilo**: `python -m flake8` desde la raíz, con la configuración de `setup.cfg` (PEP 8, líneas de hasta 120 caracteres). Cada servicio tiene su archivo de pruebas en `tests/unit/`.
 - **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
 
 ## Decisiones confirmadas por los investigadores (26/10/2026)
@@ -122,11 +128,13 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   | CP-23 | Datos de los gráficos (`/api/dashboard`): solo del usuario y coherentes con el total |
   | CP-24 | Proyección (o "Datos insuficientes") y recomendaciones con acción |
   | CP-25 | Estados especiales (mes sin gastos, sin presupuesto, error de gráficos), tarjetas rápidas y actividad |
+  | CP-26 | Reporte en pantalla: los cuatro tipos de período, las tres agrupaciones, total = suma del período, período sin gastos y solo datos del usuario |
+  | CP-27 | PDF: nombre del archivo, mismos datos que la pantalla y error al generarlo |
   | CP-29 | Control de acceso (403 y 404) |
   | CP-30 | CSRF |
   | CP-31 | Contraseñas protegidas |
 
-  CP-26 y CP-27 están propuestos en la EDT 3.7; CP-28 y CP-32 a CP-34 se definen en sus etapas.
+  CP-28 y CP-32 a CP-34 se definen en la etapa 9 (EDT 4.1–4.7).
 - **Detalles aprobados**:
   - P-08 solo gestiona cuentas de microemprendedor; las de administrador se crean con `flask crear-admin`;
   - la contraseña nueva debe ser distinta de la actual;
@@ -147,20 +155,22 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - las tarjetas rápidas se eligen por cantidad de registros en los últimos 30 días y muestran el monto del mes; el "+" elige la categoría en el registro rápido y, sin JavaScript, abre P-03 con la categoría marcada;
   - el selector de mes no permite meses futuros;
   - en un mes anterior, la actividad reciente muestra los últimos 7 días hasta el corte de ese mes.
+- **Reportes (confirmado tras la EDT 3.7)**:
+  - la semana va de lunes a domingo y contiene la fecha elegida (igual que el gráfico semanal);
+  - el mensual ofrece los últimos 24 meses; para fechas más antiguas se usa Personalizado;
+  - por categoría y por método, las filas van de mayor a menor total ("Sin categoría" y "Sin registrar" son un grupo más); por fecha, solo los días con gastos, del más antiguo al más reciente;
+  - el PDF es A4 vertical, con la agrupación y el número de página; si el usuario no tiene nombre de negocio, va su nombre;
+  - en un período sin gastos no se ofrece el botón de PDF;
+  - en el celular la cantidad va bajo el nombre del grupo ("2 gastos") y se oculta su columna, para que la tabla quepa en 320 px.
 
-## Propuesto en la EDT 3.7 (pendiente de confirmación)
+## Propuesto en la EDT 3.8 (pendiente de confirmación)
 
-- **Casos de prueba**:
-
-  | CP | Qué cubre |
-  |---|---|
-  | CP-26 | Reporte en pantalla: los cuatro tipos de período, las tres agrupaciones, total = suma del período, período sin gastos y solo datos del usuario |
-  | CP-27 | PDF: nombre del archivo, mismos datos que la pantalla y error al generarlo |
-
-- **Períodos**: la semana va de lunes a domingo y contiene la fecha elegida (igual que el gráfico semanal). El mensual ofrece los últimos 24 meses; para fechas más antiguas se usa Personalizado.
-- **Orden de las filas**: por categoría y por método, de mayor a menor total (con "Sin categoría" y "Sin registrar" como un grupo más); por fecha, solo los días con gastos, del más antiguo al más reciente.
-- **PDF**: A4 vertical. Si el usuario no tiene nombre de negocio, va su nombre. Incluye la agrupación y el número de página. En un período sin gastos no se ofrece el botón de PDF.
-- **Celular**: la cantidad va bajo el nombre del grupo ("2 gastos") y se oculta su columna, para que la tabla quepa en 320 px sin desplazamiento horizontal.
+- **Cuenta de demostración**:
+  - nombre y negocio "PRUEBA Panadería", correo `prueba.panaderia@controlgastos.test`; la contraseña se elige al crearla, como en `flask crear-admin`;
+  - 60 días hasta hoy con semilla fija, cerca del 20 % de gastos incompletos (el método de pago es el más omitido) y el presupuesto de cada mes desde enero de 2026;
+  - "Otros" queda sin presupuesto y Transporte tiene un monto bajo a propósito, para que se vean Excedida y las recomendaciones.
+- **`flask demo borrar`**: borra todas las cuentas cuyo nombre empieza con "PRUEBA" (también las de administrador), con sus gastos, presupuestos, categorías y eventos de la bitácora. Pide confirmación (s/n) salvo con `--si`.
+- **PEP 8**: líneas de hasta 120 caracteres (`setup.cfg`). Se verifica con flake8 instalado aparte, porque `requirements-dev.txt` está fijado en la especificación. Propuesta: agregar `flake8==7.4.1` a `requirements-dev.txt` y un paso "Estilo PEP 8" al CI.
 
 ## Entorno local (Windows)
 - Python 3.11.9 instalado junto a 3.12: usar `py -3.11` para crear el venv (`py -3.11 -m venv .venv`).

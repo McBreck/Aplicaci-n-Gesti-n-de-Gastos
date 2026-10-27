@@ -4,6 +4,23 @@ Todos los cambios relevantes de ControlGastos se registran en este archivo, agru
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Secciones por entrada: **Agregado**, **Cambiado**, **Corregido**, **Eliminado**, **Seguridad**.
 
+## [EDT 3.8] Pruebas unitarias y cierre de la fase 3.0 — 26/10/2026
+
+### Agregado
+- `flask demo crear`: cuenta "PRUEBA Panadería" (`prueba.panaderia@controlgastos.test`), con una contraseña que se elige al crearla, que incluye:
+  - unos 120 gastos de panadería en los 60 días hasta hoy;
+  - cerca del 20 % incompletos, con el método de pago como dato más omitido;
+  - el presupuesto de cada mes del período, con montos justos para que se vean las alertas, la proyección y las recomendaciones.
+
+  Los datos salen de una semilla fija y se guardan en una sola transacción; si la cuenta ya existe, no se crea de nuevo.
+- `flask demo borrar`: muestra las cuentas cuyo nombre empieza con "PRUEBA" y, al confirmar, las borra por completo con sus gastos, presupuestos, categorías y eventos de la bitácora (`--si` para no preguntar). Las demás cuentas y la plantilla de categorías no se tocan.
+- Pruebas unitarias de AuthService, AuditoriaService, `periodo`, `validacion` y de los datos de demostración, más los casos que faltaban en analítica, categorías, formato y usuarios. Cada servicio tiene su archivo en `tests/unit/`.
+- `setup.cfg` con la configuración de flake8 y pycodestyle: PEP 8 con líneas de hasta 120 caracteres (RNF-15).
+- README con variables de entorno, pantallas, datos de demostración, pruebas y calidad, y estructura del proyecto.
+
+### Cambiado
+- Se partieron las líneas de más de 120 caracteres en servicios, rutas y pruebas, sin cambios de comportamiento.
+
 ## [EDT 3.7] Reportes y PDF — 26/10/2026
 
 ### Agregado
