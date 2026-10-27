@@ -4,6 +4,29 @@ Todos los cambios relevantes de ControlGastos se registran en este archivo, agru
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Secciones por entrada: **Agregado**, **Cambiado**, **Corregido**, **Eliminado**, **Seguridad**.
 
+## [EDT 3.6] Dashboard — 26/10/2026
+
+### Agregado
+- P-02 Dashboard completo (RF-13 a RF-18; CU-11, CU-12), en este orden:
+  1. registro rápido;
+  2. tres tarjetas de las categorías más usadas en los últimos 30 días, con "+S/ 5", "+S/ 10" y "+S/ 20" que suman al monto y eligen la categoría sin guardar (RNF-05);
+  3. cuatro KPI dibujados en el servidor: gastado en el mes con su variación frente al mes anterior a la misma fecha (A1, A2), presupuesto usado con barra y estado (A9), proyección al cierre (P1) y registros completos con el dato más omitido (A8);
+  4. "Gastos de la semana" en barras apiladas por día y categoría (S1), con flechas de semana, filtro por categoría y leyenda con totales; al lado, hasta tres recomendaciones con ícono del color de su estado y enlace de acción;
+  5. "Gasto acumulado del mes" con la línea real, la proyección punteada y el presupuesto total; al lado, las cinco categorías con mayor ejecución;
+  6. "Actividad reciente" de los últimos 7 días, agrupada por día y por categoría ("3 registros"); al lado, "Método de pago" en barras horizontales con "Sin registrar" en gris.
+- Selector de mes en la cabecera; no permite meses futuros.
+- `/api/dashboard?mes=AAAA-MM&semana=AAAA-MM-DD`: datos de los gráficos solo del usuario autenticado; errores en JSON (401 sin sesión, 403 para el administrador).
+- `static/js/dashboard.js` con Chart.js 4.4.9:
+  - fuente Inter, montos `S/ 1,234.56` en los tooltips;
+  - sin animación si el usuario prefiere menos movimiento;
+  - Chart.js se carga solo en el dashboard (RNF-02).
+- Estados especiales:
+  - mes sin gastos: "Aún no registras gastos este mes" con botón (flujo alterno 2a);
+  - sin presupuesto: "Define tu presupuesto para ver si te mantienes dentro de lo planificado";
+  - error al cargar los gráficos: "No se pudieron cargar los gráficos. Vuelve a intentarlo" con "Reintentar", sin perder las cifras.
+- En el celular los KPI van en 2×2, las tarjetas en una columna y los gráficos se desplazan dentro de su contenedor (RNF-04).
+- El formulario P-03 acepta `?categoria=` para llegar con la categoría marcada.
+
 ## [EDT 3.5] Analítica, proyección y recomendaciones — 26/10/2026
 
 ### Agregado

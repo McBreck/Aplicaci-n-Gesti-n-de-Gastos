@@ -76,6 +76,13 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - `services/validacion.py`: `interpretar_monto` (con `permitir_cero`) y `ErrorValidacion`;
   - `services/periodo.py`: `interpretar_mes(?mes=AAAA-MM)`, mes anterior y siguiente, último día;
   - macro `componentes/selector_mes.html`.
+- **Dashboard y API (EDT 3.6)**:
+  - las cifras se dibujan en el servidor;
+  - los gráficos se piden a `/api/dashboard`, armados por `analitica.datos_graficos`;
+  - toda ruta bajo `/api/` responde errores en JSON (401 sin sesión, 403, 404);
+  - Chart.js se carga solo en páginas con gráficos (`{% block scripts %}`, RNF-02);
+  - el JS de cada pantalla va en su propio archivo (`static/js/dashboard.js`), y los textos del usuario se escriben con `textContent`.
+- **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
 
 ## Decisiones confirmadas por los investigadores (26/10/2026)
 
@@ -121,15 +128,24 @@ Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Contr
   - los gastos sin categoría no cuentan en A9 (P-05 lo aclara con una nota);
   - el presupuesto se edita entre 2026-01 y 2100-12; los demás meses son de solo lectura;
   - cada categoría de la barra lateral abre Mis gastos filtrado por ella.
-
-## Criterios propuestos en la EDT 3.5 (pendientes de confirmación)
-
-- **Recomendaciones**:
+- **Recomendaciones (confirmadas tras la EDT 3.5)**:
   - R2 muestra el exceso en soles y en % sobre lo planificado ("en S/ 30.30 (5.8 %)");
   - R3 y R6 solo aplican al mes en curso;
   - "Sin categoría" no genera R5 ni R7;
   - en empates gana la prioridad, luego el orden de la tabla (R5 antes que R7) y luego el valor más alto.
-- **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
+
+## Propuesto en la EDT 3.6 (pendiente de confirmación)
+
+- **Casos de prueba**:
+
+  | CP | Qué cubre |
+  |---|---|
+  | CP-22 | Los cuatro KPI del dashboard coinciden con el listado del mismo período |
+  | CP-23 | Datos de los gráficos (`/api/dashboard`): solo del usuario y coherentes con el total |
+  | CP-24 | Proyección (o "Datos insuficientes") y recomendaciones con acción |
+  | CP-25 | Estados especiales (mes sin gastos, sin presupuesto, error de gráficos), tarjetas rápidas y actividad |
+- **Tarjetas rápidas**: se eligen por cantidad de registros en los últimos 30 días y muestran el monto del mes. El "+" elige la categoría en el registro rápido; sin JavaScript abre P-03 con la categoría marcada.
+- **Dashboard de otro mes**: el selector no permite meses futuros. La actividad reciente muestra los últimos 7 días hasta el corte del mes elegido.
 
 ## Entorno local (Windows)
 - Python 3.11.9 instalado junto a 3.12: usar `py -3.11` para crear el venv (`py -3.11 -m venv .venv`).
