@@ -1,11 +1,11 @@
 """Elementos comunes de la interfaz: navegación, avatar y páginas de error."""
-from flask import Flask, current_app, g, render_template, request, url_for
+from flask import Flask, current_app, g, jsonify, render_template, request, url_for
 from flask_login import current_user
 from flask_wtf.csrf import CSRFError
 from werkzeug.exceptions import HTTPException
 
 from app.extensions import db
-from app.seguridad import url_inicio
+from app.seguridad import es_api, url_inicio
 from app.services.formato import hoy_lima
 
 # (texto, ícono de Bootstrap Icons, endpoint). Un ítem aparece cuando su ruta existe.
@@ -62,10 +62,10 @@ def _construir_navegacion(items) -> list[dict]:
     return navegacion
 
 
-def _resumen_lateral():
-    """Presupuesto del mes actual para la barra lateral, el widget y el badge de alertas.
+def resumen_del_mes_actual():
+    """Presupuesto del mes actual: barra lateral, widget, badge de alertas y tarjetas rápidas.
 
-    Se calcula solo si la plantilla lo pide y una vez por petición (se guarda en g).
+    Se calcula solo si se pide y una vez por petición (se guarda en g).
     """
     if "resumen_lateral" not in g:
         from app.services import presupuesto as presupuesto_service
@@ -88,7 +88,7 @@ def _contexto_comun() -> dict:
         "navegacion": _construir_navegacion(items),
         "url_inicio": url_inicio(current_user),
         "url_registrar_gasto": url_for(ENDPOINT_REGISTRAR_GASTO) if puede_registrar else None,
-        "resumen_lateral": None if es_admin else _resumen_lateral,
+        "resumen_lateral": None if es_admin else resumen_del_mes_actual,
     }
 
 
@@ -102,4 +102,6 @@ def _pagina_error(error: HTTPException):
         mensaje = MENSAJE_CSRF
     if codigo >= 500:
         db.session.rollback()
+    if es_api():
+        return jsonify(error=mensaje), codigo
     return render_template("errores/error.html", codigo=codigo, titulo=titulo, mensaje=mensaje), codigo

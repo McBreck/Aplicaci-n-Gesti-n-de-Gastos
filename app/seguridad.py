@@ -2,7 +2,7 @@
 from functools import wraps
 from urllib.parse import urlsplit
 
-from flask import abort, request, url_for
+from flask import abort, jsonify, request, url_for
 from flask_login import current_user
 from sqlalchemy import select
 
@@ -10,6 +10,11 @@ from app.extensions import db, login_manager
 
 # Únicas rutas accesibles sin iniciar sesión
 ENDPOINTS_PUBLICOS = {"auth.login", "salud", "static"}
+PREFIJO_API = "/api/"
+
+
+def es_api() -> bool:
+    return request.path.startswith(PREFIJO_API)
 
 
 def exigir_sesion():
@@ -17,6 +22,8 @@ def exigir_sesion():
     if request.endpoint is None or request.endpoint in ENDPOINTS_PUBLICOS:
         return None
     if not current_user.is_authenticated:
+        if es_api():
+            return jsonify(error="Tu sesión terminó. Vuelve a iniciar sesión."), 401
         return login_manager.unauthorized()
     return None
 

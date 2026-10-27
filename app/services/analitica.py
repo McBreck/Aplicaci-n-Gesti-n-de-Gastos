@@ -18,14 +18,20 @@ from app.models.presupuesto import estado_presupuesto
 from app.services import proyeccion as proyeccion_service
 from app.services import recomendacion as recomendacion_service
 from app.services.calculo import a_soles, porcentaje_de
-from app.services.formato import DIAS_CORTOS
+from app.services.formato import DIAS_CORTOS, MESES_CORTOS
 from app.services.gasto import ResumenGastos
-from app.services.periodo import mes_anterior, ultimo_dia
+from app.services.periodo import mes_anterior, texto_mes, ultimo_dia
 from app.services.proyeccion import Proyeccion
 
 SIN_CATEGORIA = "Sin categoría"
 SIN_METODO = "Sin registrar"
 COLOR_SIN_CATEGORIA = "#D1D5DB"
+# Gráfico de método de pago (sección 11.5): una sola serie; "Sin registrar" en gris claro
+COLOR_METODO = "#111827"
+COLOR_METODO_SIN_REGISTRAR = "#D1D5DB"
+# Nombres cortos en el gráfico (como los botones de P-03)
+NOMBRES_CORTOS_METODO = {"Transferencia bancaria": "Transferencia"}
+ESCALA_BARRA = 125
 MESES_EVOLUCION = 6
 COLUMNAS = (
     "id", "fecha", "monto", "categoria_id", "categoria", "color",
@@ -148,9 +154,11 @@ def ejecucion_presupuestaria(df: pd.DataFrame, presupuestos: pd.DataFrame) -> pd
     resultado = presupuestos.copy()
     ejecutado = df.groupby("categoria_id")["monto"].sum() if not df.empty else pd.Series(dtype=float)
     resultado["ejecutado"] = resultado["categoria_id"].map(ejecutado).fillna(0.0).astype(float).round(2)
-    resultado["porcentaje"] = [
-        porcentaje_de(e, p) for e, p in zip(resultado["ejecutado"], resultado["planificado"])
-    ]
+    # dtype object: conserva None (presupuesto en cero) en lugar de convertirlo en NaN
+    resultado["porcentaje"] = pd.Series(
+        [porcentaje_de(e, p) for e, p in zip(resultado["ejecutado"], resultado["planificado"])],
+        index=resultado.index, dtype=object,
+    )
     resultado["estado"] = [
         estado_presupuesto(a_soles(e), a_soles(p)) for e, p in zip(resultado["ejecutado"], resultado["planificado"])
     ]
@@ -259,6 +267,43 @@ class AnalisisMes:
     def sin_gastos(self) -> bool:
         return self.gastos.empty
 
+    @property
+    def tiene_presupuesto(self) -> bool:
+        return not self.ejecucion.empty
+
+    @property
+    def total_ejecutado_presupuestado(self) -> Decimal:
+        return sum((a_soles(valor) for valor in self.ejecucion["ejecutado"]), CERO)
+
+    @property
+    def estado_presupuesto(self) -> str | None:
+        """Estado del presupuesto total del mes (barra del KPI "Presupuesto usado")."""
+        if not self.tiene_presupuesto:
+            return None
+        return estado_presupuesto(self.total_ejecutado_presupuestado, self.total_planificado)
+
+    @property
+    def porcentaje_barra(self) -> float:
+        if self.presupuesto_usado is None:
+            return float(ESCALA_BARRA) if self.total_ejecutado_presupuestado > 0 else 0.0
+        return min(self.presupuesto_usado, float(ESCALA_BARRA))
+
+    def mayor_ejecucion(self, cantidad: int = 5) -> list[dict]:
+        """Las categorías con mayor % de ejecución (tarjeta "Presupuesto por categoría")."""
+        filas = []
+        for fila in self.ejecucion.itertuples():
+            if fila.porcentaje is not None:
+                barra = min(fila.porcentaje, float(ESCALA_BARRA))
+            else:  # presupuesto en cero
+                barra = float(ESCALA_BARRA) if fila.ejecutado > 0 else 0.0
+            filas.append({
+                "categoria_id": int(fila.categoria_id), "categoria": fila.categoria, "color": fila.color,
+                "planificado": a_soles(fila.planificado), "ejecutado": a_soles(fila.ejecutado),
+                "porcentaje": fila.porcentaje, "estado": fila.estado, "porcentaje_barra": barra,
+            })
+        filas.sort(key=lambda fila: (-fila["porcentaje_barra"], fila["categoria"]))
+        return filas[:cantidad]
+
 
 def _proyeccion(gastos_mes: pd.DataFrame, diaria: pd.DataFrame, mes: date, hoy: date) -> Proyeccion:
     ultimo_con_datos = gastos_mes["fecha"].max().date() if not gastos_mes.empty else None
@@ -299,6 +344,54 @@ def _datos_de_recomendacion(mes, hoy, gastos_mes, gastos_previos, categorias, ej
         proyeccion=proyeccion,
         ultima_fecha=gastos_mes["fecha"].max().date() if not gastos_mes.empty else None,
     )
+
+
+def _titulo_semana(lunes: date) -> str:
+    """'26 oct – 1 nov'."""
+    domingo = lunes + timedelta(days=6)
+    return (f"{lunes.day} {MESES_CORTOS[lunes.month - 1]} – "
+            f"{domingo.day} {MESES_CORTOS[domingo.month - 1]}")
+
+
+def datos_graficos(analisis: "AnalisisMes", semana: SemanaApilada, hoy: date) -> dict:
+    """JSON de /api/dashboard para Chart.js: S1, A5 con P1 y presupuesto, y A4 (RF-15, RF-16)."""
+    corte = analisis.corte.day if analisis.corte else 0
+    real = [round(float(valor), 2) if indice < corte else None
+            for indice, valor in enumerate(analisis.diaria["acumulado"])]
+    proyeccion = [None] * len(analisis.diaria)
+    for dia, valor in analisis.proyeccion.linea():
+        proyeccion[dia - 1] = valor
+    siguiente = semana.lunes + timedelta(days=7)
+    metodos = analisis.por_metodo
+    return {
+        "mes": texto_mes(analisis.mes),
+        "semana": {
+            "lunes": semana.lunes.isoformat(),
+            "titulo": _titulo_semana(semana.lunes),
+            "anterior": (semana.lunes - timedelta(days=7)).isoformat(),
+            "siguiente": siguiente.isoformat() if siguiente <= hoy else None,
+            "etiquetas": list(semana.etiquetas),
+            "series": [
+                {"categoria": serie["categoria"], "color": serie["color"],
+                 "valores": serie["valores"], "total": serie["total"]}
+                for serie in semana.series
+            ],
+            "total": semana.total,
+        },
+        "acumulado": {
+            "etiquetas": [str(dia) for dia in range(1, len(analisis.diaria) + 1)],
+            "real": real,
+            "proyeccion": proyeccion,
+            "presupuesto": float(analisis.total_planificado) if analisis.tiene_presupuesto else None,
+            "mensaje_proyeccion": analisis.proyeccion.mensaje,
+        },
+        "metodos": {
+            "etiquetas": [NOMBRES_CORTOS_METODO.get(nombre, nombre) for nombre in metodos["metodo_pago"]],
+            "valores": [round(float(valor), 2) for valor in metodos["total"]],
+            "colores": [COLOR_METODO_SIN_REGISTRAR if nombre == SIN_METODO else COLOR_METODO
+                        for nombre in metodos["metodo_pago"]],
+        },
+    }
 
 
 def analizar_mes(usuario_id: int, mes: date, hoy: date) -> AnalisisMes:

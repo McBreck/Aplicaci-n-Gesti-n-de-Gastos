@@ -4,11 +4,13 @@ Cada cuenta recibe una copia de la plantilla (RN-11); además puede crear y
 renombrar categorías propias y activar o desactivar cualquiera. Una categoría
 desactivada no aparece al registrar, pero se conserva en el historial.
 """
+from datetime import date, timedelta
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
-from app.models import Categoria
+from app.models import Categoria, Gasto
 from app.models.categoria import LONGITUD_NOMBRE, PALETA
 from app.services import auditoria
 
@@ -32,6 +34,35 @@ def listar_categorias(usuario_id: int, *, solo_activas: bool = True, incluir_id:
         activa = Categoria.activa.is_(True)
         consulta = consulta.where(or_(activa, Categoria.id == incluir_id) if incluir_id else activa)
     return list(db.session.scalars(consulta.order_by(Categoria.id)))
+
+
+def mas_usadas(usuario_id: int, hoy: date, *, dias: int = 30, cantidad: int = 3) -> list[Categoria]:
+    """Tarjetas rápidas de P-02: las categorías activas con más registros en los últimos 30 días.
+
+    Si no alcanzan, se completan con las primeras categorías activas.
+    """
+    usos = (
+        select(Gasto.categoria_id)
+        .join(Categoria, Categoria.id == Gasto.categoria_id)
+        .where(
+            Gasto.usuario_id == usuario_id,
+            Gasto.eliminado.is_(False),
+            Gasto.fecha.between(hoy - timedelta(days=dias - 1), hoy),
+            Categoria.activa.is_(True),
+        )
+        .group_by(Gasto.categoria_id)
+        .order_by(func.count(Gasto.id).desc(), func.sum(Gasto.monto).desc(), Gasto.categoria_id)
+        .limit(cantidad)
+    )
+    activas = listar_categorias(usuario_id)
+    por_id = {categoria.id: categoria for categoria in activas}
+    elegidas = [por_id[id_categoria] for id_categoria in db.session.scalars(usos) if id_categoria in por_id]
+    for categoria in activas:
+        if len(elegidas) >= cantidad:
+            break
+        if categoria not in elegidas:
+            elegidas.append(categoria)
+    return elegidas
 
 
 def obtener_categoria(usuario_id: int, id_categoria: int) -> Categoria | None:
