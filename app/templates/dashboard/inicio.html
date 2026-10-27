@@ -1,16 +1,221 @@
-{#- P-02 Inicio. En la EDT 3.3 muestra el registro rápido (punto 1 de P-02);
-    el resto del dashboard se construye en la EDT 3.6 -#}
+{#- P-02 Dashboard (Inicio), EDT 2.5 con el diseño de la sección 11. Las cifras se dibujan en el
+    servidor; los gráficos se cargan por fetch a /api/dashboard (dashboard.js). -#}
 {% extends "base.html" %}
-{% from "componentes/ui.html" import tarjeta, estado_vacio %}
+{% from "componentes/ui.html" import tarjeta, kpi, chip_estado, barra_presupuesto, estado_vacio %}
 {% from "componentes/registro_rapido.html" import registro_rapido %}
+{% from "componentes/tarjeta_categoria_rapida.html" import tarjeta_categoria_rapida %}
+{% from "componentes/actividad.html" import actividad %}
+{% from "componentes/selector_mes.html" import selector_mes %}
+
+{% set nombre_mes = (mes|mes_anio).split()[0]|lower %}
+{% set nombre_mes_previo = (mes_previo|mes_anio).split()[0]|lower %}
+{% set ICONOS_RECOMENDACION = {
+  "Excedida": ("excedida", "bi-x-circle"),
+  "En alerta": ("alerta", "bi-exclamation-triangle"),
+  "Informativa": ("neutro", "bi-info-circle"),
+} %}
+
+{#- Estado especial: error al cargar los gráficos (las cifras del servidor se conservan) -#}
+{% macro _error_graficos() -%}
+<div class="cg-grafico-error" data-cg-error-graficos hidden>
+  <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+  <p>No se pudieron cargar los gráficos. Vuelve a intentarlo</p>
+  <button type="button" class="btn btn-cg-secundario" data-cg-reintentar>Reintentar</button>
+</div>
+{%- endmacro %}
 
 {% block titulo %}Inicio{% endblock %}
 
+{% block acciones_cabecera %}
+{{ selector_mes("dashboard.inicio", mes, anterior, siguiente, "d-none d-sm-flex") }}
+{% endblock %}
+
 {% block contenido %}
-<div class="cg-pila">
+{% set a = analisis %}
+<div class="cg-dashboard cg-pila" data-cg-api="{{ url_for('dashboard.api', mes=mes.strftime('%Y-%m')) }}">
+  {{ selector_mes("dashboard.inicio", mes, anterior, siguiente, "cg-selector-mes--contenido d-flex d-sm-none") }}
+
+  {#- 1. Registro rápido -#}
   {{ registro_rapido(categorias, metodos, hoy, url_for('gastos.nuevo', next=url_for('dashboard.inicio'))) }}
+
+  {#- 2. Tarjetas de las categorías más usadas -#}
+  {% if rapidas %}
+  <div class="cg-rapidas">
+    {% for categoria in rapidas %}{{ tarjeta_categoria_rapida(categoria, montos_del_mes.get(categoria.id, 0)) }}{% endfor %}
+  </div>
+  {% endif %}
+
+  {#- 3. Cuatro KPI (RF-15) -#}
+  <div class="cg-kpis">
+    {#- A2: comparación con el mes anterior a la misma fecha -#}
+    {% if a.variacion is none %}
+      {% set detalle_total = "Sin gastos a la misma fecha de " ~ nombre_mes_previo ~ " para comparar" %}
+    {% elif a.variacion > 0 %}
+      {% set detalle_total = (a.variacion|porcentaje) ~ " más que a la misma fecha de " ~ nombre_mes_previo %}
+    {% elif a.variacion < 0 %}
+      {% set detalle_total = ((-a.variacion)|porcentaje) ~ " menos que a la misma fecha de " ~ nombre_mes_previo %}
+    {% else %}
+      {% set detalle_total = "Igual que a la misma fecha de " ~ nombre_mes_previo %}
+    {% endif %}
+    {{ kpi("Gastado en " ~ nombre_mes, a.total|soles, detalle_total, "bi-wallet2") }}
+
+    {% call kpi("Presupuesto usado", a.presupuesto_usado|porcentaje if a.tiene_presupuesto else "—", none, "bi-pie-chart") %}
+      {% if a.tiene_presupuesto %}
+      <div class="cg-kpi__barra">{{ barra_presupuesto(a.porcentaje_barra, a.estado_presupuesto) }}{{ chip_estado(a.estado_presupuesto) }}</div>
+      {% else %}
+      <div class="cg-kpi__detalle">Define tu presupuesto para ver si te mantienes dentro de lo planificado</div>
+      {% endif %}
+    {% endcall %}
+
+    {{ kpi("Proyección al cierre", a.proyeccion.valor|soles if a.proyeccion.suficiente else "—",
+           a.proyeccion.mensaje, "bi-graph-up-arrow") }}
+
+    {% if a.completitud.cantidad == 0 %}
+      {% set detalle_completitud = "Sin registros este mes" %}
+    {% elif a.completitud.campo_mas_omitido %}
+      {% set detalle_completitud = "Dato más omitido: " ~ a.completitud.campo_mas_omitido %}
+    {% else %}
+      {% set detalle_completitud = "Todos tus registros están completos" %}
+    {% endif %}
+    {{ kpi("Registros completos", a.completitud.porcentaje_completitud|porcentaje, detalle_completitud, "bi-check2-square") }}
+  </div>
+
+  {% if a.sin_gastos %}
+  {#- Estado especial (CU-11, flujo alterno 2a): mes sin gastos -#}
   {% call tarjeta() %}
-  {{ estado_vacio("bi-bar-chart", "Hola, " ~ current_user.nombre.split()[0] ~ ". Aquí verás el resumen de tus gastos del mes.", url_for('gastos.listar'), "Ver mis gastos") }}
+  {{ estado_vacio("bi-receipt", "Aún no registras gastos este mes", url_for('gastos.nuevo'), "Registrar gasto") }}
   {% endcall %}
+  {% else %}
+
+  {#- 4. Gastos de la semana (S1) | Recomendaciones (RF-18) -#}
+  <div class="cg-fila-2-1">
+    <section class="cg-tarjeta" aria-labelledby="titulo-semana">
+      <header class="cg-tarjeta__cabecera cg-tarjeta__cabecera--controles">
+        <h2 class="cg-tarjeta__titulo" id="titulo-semana">Gastos de la semana</h2>
+        <div class="cg-semana-controles">
+          <button type="button" class="btn btn-cg-secundario btn-cg-icono" data-cg-semana-anterior aria-label="Semana anterior">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </button>
+          <span class="cg-semana-controles__titulo" data-cg-semana-titulo aria-live="polite">—</span>
+          <button type="button" class="btn btn-cg-secundario btn-cg-icono" data-cg-semana-siguiente aria-label="Semana siguiente">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+          <label class="visually-hidden" for="filtro-semana">Categoría del gráfico semanal</label>
+          <select class="form-select cg-semana-controles__filtro" id="filtro-semana" data-cg-filtro-semana>
+            <option value="">Todas las categorías</option>
+          </select>
+        </div>
+      </header>
+      <div class="cg-tarjeta__cuerpo">
+        <div class="cg-semana" data-cg-grafico>
+          <div class="cg-grafico-desplazable">
+            <div class="cg-grafico"><canvas id="grafico-semana" role="img" aria-label="Gasto de la semana por día y categoría"></canvas></div>
+          </div>
+          <ul class="cg-leyenda" data-cg-leyenda-semana aria-label="Total de la semana por categoría"></ul>
+        </div>
+        {{ _error_graficos() }}
+      </div>
+    </section>
+
+    {% call tarjeta("Recomendaciones") %}
+    <ul class="cg-recomendaciones">
+      {% for r in a.recomendaciones %}
+      {% set variante, icono = ICONOS_RECOMENDACION.get(r.estado, ("neutro", "bi-info-circle")) %}
+      <li class="cg-recomendacion">
+        <span class="cg-recomendacion__icono cg-recomendacion__icono--{{ variante }}" aria-hidden="true"><i class="bi {{ icono }}"></i></span>
+        <div class="cg-recomendacion__cuerpo">
+          <p class="cg-recomendacion__texto">{{ r.mensaje }}</p>
+          <a class="cg-recomendacion__accion" href="{{ url_for(r.endpoint, **r.argumentos) }}">{{ r.accion }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </div>
+      </li>
+      {% else %}
+      <li class="cg-recomendacion">
+        <span class="cg-recomendacion__icono cg-recomendacion__icono--ok" aria-hidden="true"><i class="bi bi-check-circle"></i></span>
+        <div class="cg-recomendacion__cuerpo"><p class="cg-recomendacion__texto">{{ mensaje_bajo_control }}</p></div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endcall %}
+  </div>
+
+  {#- 5. Gasto acumulado del mes (A5 + P1) | Presupuesto por categoría (A7) -#}
+  <div class="cg-fila-2-1">
+    {% call tarjeta("Gasto acumulado del mes") %}
+    <div data-cg-grafico>
+      <div class="cg-grafico-desplazable">
+        <div class="cg-grafico">
+          <canvas id="grafico-acumulado" role="img"
+                  aria-label="Gasto acumulado del mes: {{ a.total|soles }}{% if a.proyeccion.suficiente %}; estimación al cierre: {{ a.proyeccion.valor|soles }}{% endif %}"></canvas>
+        </div>
+      </div>
+    </div>
+    {{ _error_graficos() }}
+    {% endcall %}
+
+    <section class="cg-tarjeta" aria-labelledby="titulo-presupuesto-categoria">
+      <header class="cg-tarjeta__cabecera">
+        <h2 class="cg-tarjeta__titulo" id="titulo-presupuesto-categoria">Presupuesto por categoría</h2>
+        <a class="cg-enlace-tarjeta" href="{{ url_for('presupuesto.ver', mes=mes.strftime('%Y-%m')) }}">Ver todo</a>
+      </header>
+      <div class="cg-tarjeta__cuerpo">
+        {% if a.tiene_presupuesto %}
+        <ul class="cg-presupuesto-resumen">
+          {% for fila in a.mayor_ejecucion(5) %}
+          <li class="cg-presupuesto-resumen__fila">
+            <div class="cg-presupuesto-resumen__cabecera">
+              <span class="cg-punto" data-cg-color="{{ fila.color }}" aria-hidden="true"></span>
+              <span class="cg-presupuesto-resumen__nombre">{{ fila.categoria }}</span>
+              <span class="cg-numero cg-presupuesto-resumen__porcentaje">{{ fila.porcentaje|porcentaje }}</span>
+            </div>
+            {{ barra_presupuesto(fila.porcentaje_barra, fila.estado) }}
+            <div class="cg-presupuesto-resumen__pie">
+              <span class="cg-texto-secundario cg-numero">{{ fila.ejecutado|soles }} de {{ fila.planificado|soles }}</span>
+              {{ chip_estado(fila.estado) }}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {{ estado_vacio("bi-pie-chart", "Define tu presupuesto para ver si te mantienes dentro de lo planificado", url_for('presupuesto.ver', mes=mes.strftime('%Y-%m')), "Definir presupuesto") }}
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  {#- 6. Actividad reciente | Método de pago (A4) -#}
+  <div class="cg-fila-2-1">
+    <section class="cg-tarjeta" aria-labelledby="titulo-actividad">
+      <header class="cg-tarjeta__cabecera">
+        <h2 class="cg-tarjeta__titulo" id="titulo-actividad">Actividad reciente</h2>
+        <a class="cg-enlace-tarjeta" href="{{ url_for('gastos.listar', **filtros_actividad.como_argumentos()) }}">Ver todo</a>
+      </header>
+      <div class="cg-tarjeta__cuerpo">
+        {% if dias_actividad %}
+        {{ actividad(dias_actividad, acciones=false, url_retorno=url_for('dashboard.inicio')) }}
+        {% else %}
+        {{ estado_vacio("bi-clock-history", "No registraste gastos en los últimos 7 días del mes.") }}
+        {% endif %}
+      </div>
+    </section>
+
+    {% call tarjeta("Método de pago") %}
+    <div data-cg-grafico>
+      <div class="cg-grafico cg-grafico--bajo">
+        <canvas id="grafico-metodos" role="img" aria-label="Gasto por método de pago">
+          {% for fila in a.por_metodo.itertuples() %}{{ fila.metodo_pago }}: {{ fila.total|soles }}. {% endfor %}
+        </canvas>
+      </div>
+    </div>
+    {{ _error_graficos() }}
+    {% endcall %}
+  </div>
+  {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if not analisis.sin_gastos %}
+<script src="{{ url_for('static', filename='vendor/chartjs-4.4.9/chart.umd.js') }}"></script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

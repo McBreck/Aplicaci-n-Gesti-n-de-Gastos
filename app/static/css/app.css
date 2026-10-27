@@ -1194,6 +1194,168 @@ h1, h2, h3 { color: var(--cg-texto); }
   .cg-tabla-presupuesto .cg-entrada-monto { width: min(180px, 60%); }
 }
 
+/* --- Dashboard (P-02) ------------------------------------------------------------ */
+.cg-tarjeta__cabecera--controles { flex-wrap: wrap; }
+.cg-enlace-tarjeta { font-size: 13px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Tarjetas de las categorías más usadas: 3 / 2 / 1 columnas */
+.cg-rapidas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+
+@media (max-width: 991.98px) {
+  .cg-rapidas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 575.98px) {
+  .cg-rapidas { grid-template-columns: minmax(0, 1fr); }
+}
+
+.cg-rapida {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 0;
+  background: var(--cg-color, var(--cg-campo));
+  color: var(--cg-color-texto, var(--cg-texto));
+}
+
+.cg-rapida__cabecera { display: flex; align-items: flex-start; gap: 12px; }
+.cg-rapida__datos { flex: 1; min-width: 0; }
+
+.cg-rapida__nombre {
+  margin: 0;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cg-rapida__monto { margin: 2px 0 0; font-size: 13px; opacity: .85; }
+
+.cg-rapida__mas {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--cg-accion);
+  color: #fff;
+  font-size: 20px;
+}
+
+.cg-rapida__mas:hover { background: #1F2937; color: #fff; }
+.cg-rapida__montos { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.cg-rapida__sumar {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--cg-radio-pildora);
+  background: rgba(255, 255, 255, .7);
+  color: var(--cg-texto);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cg-rapida__sumar:hover { background: #fff; }
+
+/* Cuatro KPI: 4 columnas en escritorio, 2×2 en tableta y celular */
+.cg-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+@media (min-width: 1200px) {
+  .cg-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 575.98px) {
+  .cg-kpis { gap: 12px; }
+  .cg-kpis .cg-kpi { padding: 12px 14px; }
+  .cg-kpis .cg-kpi__valor { font-size: 20px; overflow-wrap: anywhere; }
+  .cg-kpis .cg-kpi__titulo { font-size: 12px; }
+  .cg-kpis .cg-kpi__barra { flex-wrap: wrap; }
+}
+
+/* Filas 2/3 + 1/3 */
+.cg-fila-2-1 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+
+@media (min-width: 1200px) {
+  .cg-fila-2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+}
+
+/* Gráficos: en el celular solo se desplaza el gráfico, nunca la página (RNF-04) */
+.cg-grafico { position: relative; height: 260px; }
+.cg-grafico--bajo { height: 220px; }
+
+@media (max-width: 575.98px) {
+  .cg-grafico-desplazable { overflow-x: auto; }
+  .cg-grafico-desplazable .cg-grafico { min-width: 560px; }
+}
+
+.cg-semana { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 16px; align-items: start; }
+
+@media (max-width: 767.98px) {
+  .cg-semana { grid-template-columns: minmax(0, 1fr); }
+}
+
+.cg-semana-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cg-semana-controles__titulo { min-width: 104px; font-size: 13px; font-weight: 600; text-align: center; }
+.cg-semana-controles__filtro { width: auto; min-width: 180px; }
+
+.cg-leyenda { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; font-size: 13px; list-style: none; }
+.cg-leyenda li { display: flex; align-items: center; gap: 8px; }
+.cg-leyenda__nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cg-leyenda__total { font-weight: 500; white-space: nowrap; }
+.cg-leyenda__fila-total { padding-top: 8px; border-top: 1px solid var(--cg-borde); font-weight: 600; }
+.cg-leyenda__vacia { color: var(--cg-texto-2); }
+
+.cg-grafico-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 12px;
+  color: var(--cg-texto-2);
+  text-align: center;
+}
+
+.cg-grafico-error .bi { color: var(--cg-alerta-texto); font-size: 22px; }
+.cg-grafico-error p { margin: 0; }
+
+/* Recomendaciones: ícono con el color del estado, texto y enlace de acción */
+.cg-recomendaciones { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.cg-recomendacion { display: flex; align-items: flex-start; gap: 12px; }
+
+.cg-recomendacion__icono {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 18px;
+}
+
+.cg-recomendacion__icono--excedida { background: var(--cg-excedida-fondo); color: var(--cg-excedida-texto); }
+.cg-recomendacion__icono--alerta { background: var(--cg-alerta-fondo); color: var(--cg-alerta-texto); }
+.cg-recomendacion__icono--neutro { background: var(--cg-neutro-fondo); color: var(--cg-neutro-texto); }
+.cg-recomendacion__icono--ok { background: var(--cg-ok-fondo); color: var(--cg-ok-texto); }
+.cg-recomendacion__cuerpo { min-width: 0; }
+/* "pretty" evita que "%)." quede solo en la última línea */
+.cg-recomendacion__texto { margin: 0 0 4px; text-wrap: pretty; }
+.cg-kpi__detalle { text-wrap: pretty; }
+.cg-recomendacion__accion { font-size: 13px; font-weight: 600; text-decoration: none; }
+.cg-recomendacion__accion:hover { text-decoration: underline; }
+
+/* Presupuesto por categoría (las 5 con mayor %) */
+.cg-presupuesto-resumen { display: flex; flex-direction: column; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.cg-presupuesto-resumen__fila { display: flex; flex-direction: column; gap: 8px; }
+.cg-presupuesto-resumen__cabecera { display: flex; align-items: center; gap: 8px; }
+.cg-presupuesto-resumen__nombre { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cg-presupuesto-resumen__porcentaje { font-size: 13px; font-weight: 600; }
+.cg-presupuesto-resumen__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; }
+
 /* --- Movimiento reducido ------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

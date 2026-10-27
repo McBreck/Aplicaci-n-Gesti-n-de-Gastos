@@ -106,7 +106,8 @@ def nuevo():
             return _formulario(form, form.datos(), error.errores)
         _avisar_guardado(gasto)
         return redirect(_destino())
-    return _formulario(form, {"fecha": hoy_lima().isoformat()})
+    # ?categoria= llega desde el "+" de las tarjetas rápidas del inicio (P-02)
+    return _formulario(form, {"fecha": hoy_lima().isoformat(), "categoria_id": request.args.get("categoria", "")})
 
 
 @bp.route("/<int:id_gasto>/editar", methods=["GET", "POST"])
