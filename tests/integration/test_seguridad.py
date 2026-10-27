@@ -1,4 +1,4 @@
-"""Seguridad básica (sección 10): CSRF (CP-30), contraseñas y bitácora (CP-31), límites y errores."""
+"""Seguridad básica (sección 10): CSRF (CP-30), contraseñas y bitácora (CP-31), HTTPS (CP-32), límites y errores."""
 import re
 
 import pytest
@@ -48,6 +48,16 @@ def test_cp30_acciones_post_sin_token_son_rechazadas(
     assert cuenta.activo is True
 
 
+def test_cp30_todas_las_rutas_post_exigen_el_token(app, cliente, csrf_activo):
+    """RNF-10: ninguna ruta POST acepta una petición sin token, tampoco las que se agreguen después."""
+    rutas = sorted(regla.rule for regla in app.url_map.iter_rules() if "POST" in regla.methods)
+    assert len(rutas) >= 15
+    for ruta in rutas:
+        respuesta = cliente.post(re.sub(r"<(?:\w+:)?\w+>", "1", ruta))
+        assert respuesta.status_code == 400, ruta
+        assert "El formulario expiró por seguridad" in respuesta.get_data(as_text=True), ruta
+
+
 # --- CP-31 Contraseñas protegidas (RNF-07, A02, A09) ------------------------------------
 
 def test_cp31_contrasenas_solo_como_hash_y_nunca_en_la_bitacora(cliente, crear_admin, iniciar_sesion, sesion):
@@ -79,6 +89,39 @@ def test_cp31_rehash_si_cambian_los_parametros_de_argon2(crear_usuario, iniciar_
     iniciar_sesion("prueba.ana@ejemplo.com")
     assert usuario.password_hash != anterior
     assert not usuario.necesita_rehash()
+
+
+# --- CP-32 HTTPS en producción (RNF-08, A02, A05) ---------------------------------------------
+# En el servidor, Nginx hace la redirección y se verifica con curl (docs/pruebas/4.5_seguridad.md);
+# aquí se prueba la de la propia aplicación, que actúa si una petición llega por HTTP.
+
+HTTP = "http://localhost"  # en producción el cliente de pruebas usaría https (PREFERRED_URL_SCHEME)
+
+
+@pytest.fixture
+def cliente_produccion(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "x" * 64)
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://usuario:clave@localhost:5432/controlgastos")
+    return create_app("produccion").test_client()
+
+
+def test_cp32_http_redirige_a_https_con_301(cliente_produccion):
+    respuesta = cliente_produccion.get("/login", base_url=HTTP)
+    assert respuesta.status_code == 301
+    assert respuesta.headers["Location"] == "https://localhost/login"
+
+
+def test_cp32_https_con_hsts_y_cookie_segura(cliente_produccion):
+    # Nginx atiende el HTTPS y avisa con X-Forwarded-Proto que la conexión original fue segura (ProxyFix)
+    respuesta = cliente_produccion.get("/login", base_url=HTTP, headers={"X-Forwarded-Proto": "https"})
+    assert respuesta.status_code == 200
+    assert "max-age=" in respuesta.headers["Strict-Transport-Security"]
+    cookie = respuesta.headers["Set-Cookie"]
+    assert "Secure" in cookie and "HttpOnly" in cookie
+
+
+def test_cp32_salud_responde_sin_redirigir(cliente_produccion):
+    assert cliente_produccion.get("/salud", base_url=HTTP).status_code == 200  # monitoreo desde el servidor
 
 
 def test_auditoria_descarta_claves_sensibles(app, sesion):
