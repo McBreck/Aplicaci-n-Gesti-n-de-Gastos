@@ -1356,6 +1356,92 @@ h1, h2, h3 { color: var(--cg-texto); }
 .cg-presupuesto-resumen__porcentaje { font-size: 13px; font-weight: 600; }
 .cg-presupuesto-resumen__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; }
 
+/* --- Reportes (P-07) ------------------------------------------------------------- */
+/* Píldoras segmentadas (radio + label) */
+.cg-segmentado {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: 24px;
+  background: var(--cg-campo);
+}
+
+.cg-segmentado__opcion { position: relative; }
+.cg-segmentado__entrada { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+.cg-segmentado__boton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  border-radius: var(--cg-radio-pildora);
+  color: var(--cg-texto-2);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cg-segmentado__boton:hover { color: var(--cg-texto); }
+
+.cg-segmentado__entrada:checked + .cg-segmentado__boton {
+  background: var(--cg-superficie);
+  box-shadow: var(--cg-sombra);
+  color: var(--cg-texto);
+  font-weight: 600;
+}
+
+.cg-segmentado__entrada:focus-visible + .cg-segmentado__boton { outline: 2px solid var(--cg-accion); outline-offset: 2px; }
+
+/* Solo se ven los campos del período elegido (sin JavaScript) */
+.cg-reporte-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 0 16px; }
+.cg-reporte-campos [data-cg-periodo] { display: none; }
+
+.cg-reporte-form:has(#periodo-diario:checked) [data-cg-periodo~="diario"],
+.cg-reporte-form:has(#periodo-semanal:checked) [data-cg-periodo~="semanal"],
+.cg-reporte-form:has(#periodo-mensual:checked) [data-cg-periodo~="mensual"],
+.cg-reporte-form:has(#periodo-personalizado:checked) [data-cg-periodo~="personalizado"] { display: block; }
+
+@supports not selector(:has(*)) {
+  .cg-reporte-campos [data-cg-periodo] { display: block; }
+}
+
+.cg-reporte__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 20px 20px 0;
+}
+
+.cg-reporte__negocio { margin: 0; color: var(--cg-texto-2); font-size: 13px; font-weight: 600; }
+.cg-reporte__titulo { margin: 2px 0 4px; font-size: 20px; font-weight: 600; }
+.cg-reporte__periodo { margin: 0; color: var(--cg-texto-2); }
+.cg-reporte__emision { margin: 0; color: var(--cg-texto-2); font-size: 12px; text-align: right; }
+.cg-reporte__emision strong { color: var(--cg-texto); font-size: 14px; }
+.cg-reporte__grupo { display: inline-flex; align-items: center; gap: 10px; }
+
+.cg-tabla-reporte .cg-fila-total > * {
+  border-top: 2px solid var(--cg-texto);
+  border-bottom: 0;
+  background: var(--cg-campo);
+  font-weight: 600;
+}
+
+/* Celular: la cantidad pasa bajo el nombre del grupo para que las cifras quepan sin desbordar (RNF-04) */
+.cg-reporte__cantidad { display: none; }
+
+@media (max-width: 575.98px) {
+  .cg-reporte__emision { text-align: left; }
+  .cg-tabla-reporte { font-size: 13px; }
+  .cg-tabla-reporte > :not(caption) > * > * { padding-inline: 4px; }
+  .cg-tabla-reporte .cg-reporte__col-cantidad { display: none; }
+  .cg-reporte__cantidad { display: block; margin-top: 2px; color: var(--cg-texto-2); font-size: 12px; font-weight: 400; }
+  .cg-reporte__grupo + .cg-reporte__cantidad { padding-left: 20px; }
+}
+
 /* --- Movimiento reducido ------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

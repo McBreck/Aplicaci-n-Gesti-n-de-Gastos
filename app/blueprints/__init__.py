@@ -9,6 +9,7 @@ def registrar_blueprints(app: Flask) -> None:
     from app.blueprints.dashboard import bp as dashboard_bp
     from app.blueprints.gastos import bp as gastos_bp
     from app.blueprints.presupuesto import bp as presupuesto_bp
+    from app.blueprints.reportes import bp as reportes_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
@@ -16,3 +17,4 @@ def registrar_blueprints(app: Flask) -> None:
     app.register_blueprint(gastos_bp)
     app.register_blueprint(categorias_bp)
     app.register_blueprint(presupuesto_bp)
+    app.register_blueprint(reportes_bp)
