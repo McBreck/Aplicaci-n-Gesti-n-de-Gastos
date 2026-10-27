@@ -61,6 +61,39 @@ def demo_crear(contrasena: str) -> None:
     click.echo("Ingresa con ese correo y la contraseña que elegiste. Para borrarla: flask demo borrar")
 
 
+def _mes_de_rendimiento(_contexto, _parametro, valor):
+    """Valida --mes antes de pedir la contraseña."""
+    try:
+        return demo.mes_de_rendimiento(valor, hoy_lima())
+    except demo.ErrorDemo as error:
+        raise click.ClickException(str(error)) from error
+
+
+@grupo_demo.command("rendimiento")
+@click.option(
+    "--mes", callback=_mes_de_rendimiento, help="Mes de los gastos, como AAAA-MM. Por defecto, el mes anterior."
+)
+@click.password_option(
+    "--contrasena",
+    prompt="Contraseña de la cuenta de rendimiento",
+    confirmation_prompt="Repite la contraseña",
+    help="Mínimo 8 caracteres, con letras y números.",
+)
+def demo_rendimiento(mes, contrasena: str) -> None:
+    """Crea la cuenta "PRUEBA Rendimiento" con 500 gastos en un mes (CP-28)."""
+    try:
+        resumen = demo.crear_rendimiento(contrasena, mes, hoy_lima())
+    except (demo.ErrorDemo, usuario_service.ErrorUsuario) as error:
+        raise click.ClickException(str(error)) from error
+    click.echo("Cuenta de rendimiento creada.")
+    click.echo(f"  Correo: {resumen.correo}")
+    click.echo(
+        f"  Gastos: {resumen.gastos} del {fecha(resumen.desde)} al {fecha(resumen.hasta)}"
+        f" ({_cantidad(resumen.incompletos, 'incompleto', 'incompletos')})"
+    )
+    click.echo(f"Para CP-28, genera el reporte mensual de {mes_anio(mes)} (docs/pruebas/4.4_rendimiento.md).")
+
+
 @grupo_demo.command("borrar")
 @click.option("--si", is_flag=True, help="Borra sin pedir confirmación.")
 def demo_borrar(si: bool) -> None:

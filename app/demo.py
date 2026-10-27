@@ -1,9 +1,10 @@
-"""Datos de demostración PRUEBA: `flask demo crear` y `flask demo borrar`.
+"""Datos de demostración PRUEBA: `flask demo crear`, `flask demo rendimiento` y `flask demo borrar`.
 
 La cuenta "PRUEBA Panadería" recibe 60 días de gastos de una panadería (algunos
-incompletos) y el presupuesto de cada mes. Los montos salen de una semilla fija:
-con la misma fecha se generan siempre los mismos datos. Los datos PRUEBA nunca
-se presentan como resultados de la investigación.
+incompletos) y el presupuesto de cada mes; "PRUEBA Rendimiento" recibe 500 gastos
+en un mes para medir el reporte (CP-28). Los montos salen de una semilla fija: con
+la misma fecha se generan siempre los mismos datos. Los datos PRUEBA nunca se
+presentan como resultados de la investigación.
 """
 import random
 from dataclasses import dataclass
@@ -17,18 +18,22 @@ from app.models import Auditoria, Categoria, Gasto, MetodoPago, Presupuesto, Usu
 from app.models.usuario import ROL_MICROEMPRENDEDOR
 from app.services import auditoria
 from app.services import usuario as usuario_service
-from app.services.periodo import mes_siguiente
+from app.services.periodo import mes_anterior, mes_siguiente, ultimo_dia
 from app.services.presupuesto import periodo_editable
 
 PREFIJO = "PRUEBA"
 NOMBRE = "PRUEBA Panadería"
 CORREO = "prueba.panaderia@controlgastos.test"
+NOMBRE_RENDIMIENTO = "PRUEBA Rendimiento"
+CORREO_RENDIMIENTO = "prueba.rendimiento@controlgastos.test"
 RUBRO = "Panadería"
 DIAS = 60
+GASTOS_RENDIMIENTO = 500  # RNF-01: reporte de un mes con hasta 500 registros
 SEMILLA = 2026
 PROBABILIDAD_INCOMPLETO = 0.2
 # Campo que falta en un gasto incompleto y su peso: el método de pago es el más omitido (A8)
 CAMPOS_OMITIDOS = (("metodo", 3), ("descripcion", 1), ("categoria", 1))
+_CAMPOS, _PESOS = zip(*CAMPOS_OMITIDOS)
 CENTIMO = Decimal("0.01")
 
 
@@ -46,6 +51,11 @@ class Habito:
     probabilidad: float = 1.0
     dia_semana: int | None = None  # 0 = lunes
     dia_mes: int | None = None
+
+    @property
+    def es_fijo(self) -> bool:
+        """Se paga un día fijo de la semana o del mes (sueldos, alquiler, recibos)."""
+        return self.dia_semana is not None or self.dia_mes is not None
 
     def ocurre(self, dia: date, azar: random.Random) -> bool:
         if self.dia_mes is not None:
@@ -109,21 +119,22 @@ def _monto(minimo: int, maximo: int, azar: random.Random) -> Decimal:
     return (Decimal(azar.randint(minimo * 2, maximo * 2)) / 2).quantize(CENTIMO)
 
 
+def _gasto(habito: Habito, dia: date, azar: random.Random) -> GastoDemo:
+    """Un gasto del hábito; uno de cada cinco queda incompleto."""
+    descripcion, minimo, maximo = azar.choice(habito.opciones)
+    datos = {"categoria": habito.categoria, "descripcion": descripcion, "metodo": azar.choice(habito.metodos)}
+    if azar.random() < PROBABILIDAD_INCOMPLETO:
+        datos[azar.choices(_CAMPOS, weights=_PESOS)[0]] = None
+    return GastoDemo(fecha=dia, monto=_monto(minimo, maximo, azar), **datos)
+
+
 def planificar_gastos(hoy: date) -> list[GastoDemo]:
     """Gastos de los últimos 60 días hasta hoy (nunca futuros, RN-04), del más antiguo al más reciente."""
     azar = random.Random(SEMILLA)
-    campos, pesos = zip(*CAMPOS_OMITIDOS)
     gastos = []
     for atras in range(DIAS - 1, -1, -1):
         dia = hoy - timedelta(days=atras)
-        for habito in HABITOS:
-            if not habito.ocurre(dia, azar):
-                continue
-            descripcion, minimo, maximo = azar.choice(habito.opciones)
-            datos = {"categoria": habito.categoria, "descripcion": descripcion, "metodo": azar.choice(habito.metodos)}
-            if azar.random() < PROBABILIDAD_INCOMPLETO:
-                datos[azar.choices(campos, weights=pesos)[0]] = None
-            gastos.append(GastoDemo(fecha=dia, monto=_monto(minimo, maximo, azar), **datos))
+        gastos.extend(_gasto(habito, dia, azar) for habito in HABITOS if habito.ocurre(dia, azar))
     return gastos
 
 
@@ -142,6 +153,40 @@ def meses_con_presupuesto(hoy: date) -> list[date]:
     return [mes for mes in meses_del_periodo(hoy) if periodo_editable(mes)]
 
 
+def planificar_rendimiento(mes: date, hoy: date) -> list[GastoDemo]:
+    """CP-28: 500 gastos en el mes; si es el mes en curso, solo hasta hoy (RN-04).
+
+    Los gastos fijos caen en su día (sueldos, alquiler, recibos) y el resto son compras
+    variables repartidas entre todos los días, como en una panadería con mucho movimiento.
+    """
+    azar = random.Random(SEMILLA)
+    dias = [mes + timedelta(days=numero) for numero in range((min(ultimo_dia(mes), hoy) - mes).days + 1)]
+    gastos = [
+        _gasto(habito, dia, azar) for dia in dias for habito in HABITOS if habito.es_fijo and habito.ocurre(dia, azar)
+    ]
+    variables = [habito for habito in HABITOS if not habito.es_fijo]
+    pesos = [habito.probabilidad for habito in variables]
+    gastos += [
+        _gasto(azar.choices(variables, weights=pesos)[0], dias[indice % len(dias)], azar)
+        for indice in range(GASTOS_RENDIMIENTO - len(gastos))
+    ]
+    return sorted(gastos, key=lambda gasto: gasto.fecha)
+
+
+def mes_de_rendimiento(texto: str | None, hoy: date) -> date:
+    """Mes de `--mes AAAA-MM`; sin valor, el mes anterior (completo). No puede ser futuro."""
+    if not texto:
+        return mes_anterior(hoy.replace(day=1))
+    try:
+        anio, numero = (int(parte) for parte in texto.strip().split("-"))
+        mes = date(anio, numero, 1)
+    except ValueError as error:
+        raise ErrorDemo("Escribe el mes como AAAA-MM, por ejemplo 2026-09.") from error
+    if mes > hoy:
+        raise ErrorDemo("El mes no puede ser posterior al actual: los gastos no pueden tener fechas futuras.")
+    return mes
+
+
 @dataclass(frozen=True)
 class ResumenDemo:
     correo: str
@@ -153,13 +198,12 @@ class ResumenDemo:
     hasta: date
 
 
-def crear(contrasena: str, hoy: date) -> ResumenDemo:
-    """`flask demo crear`: la cuenta PRUEBA Panadería con sus gastos y presupuestos, en una sola transacción."""
-    if usuario_service.existe_correo(CORREO):
-        raise ErrorDemo("La cuenta de demostración ya existe. Bórrala con «flask demo borrar» y vuelve a crearla.")
+def _nueva_cuenta(nombre: str, correo: str, contrasena: str) -> tuple[Usuario, dict[str, int]]:
+    """Cuenta de microemprendedor con las categorías de la plantilla (RN-11); devuelve sus ids por nombre."""
+    if usuario_service.existe_correo(correo):
+        raise ErrorDemo(f"La cuenta {correo} ya existe. Bórrala con «flask demo borrar» y vuelve a crearla.")
     usuario_service.validar_contrasena(contrasena)
-
-    usuario = Usuario(rol=ROL_MICROEMPRENDEDOR, nombre=NOMBRE, correo=CORREO, nombre_negocio=NOMBRE, rubro=RUBRO)
+    usuario = Usuario(rol=ROL_MICROEMPRENDEDOR, nombre=nombre, correo=correo, nombre_negocio=nombre, rubro=RUBRO)
     usuario.establecer_contrasena(contrasena)
     db.session.add(usuario)
     db.session.flush()
@@ -168,18 +212,35 @@ def crear(contrasena: str, hoy: date) -> ResumenDemo:
     categorias = dict(db.session.execute(
         select(Categoria.nombre, Categoria.id).where(Categoria.usuario_id == usuario.id)
     ).all())
-    metodos = dict(db.session.execute(select(MetodoPago.nombre, MetodoPago.id)).all())
+    return usuario, categorias
 
+
+def _guardar_gastos(usuario: Usuario, plan: list[GastoDemo], categorias: dict[str, int]) -> int:
+    """Agrega los gastos del plan y devuelve cuántos quedan incompletos (RN-01)."""
+    metodos = dict(db.session.execute(select(MetodoPago.nombre, MetodoPago.id)).all())
     gastos = [
         Gasto(
             usuario_id=usuario.id, fecha=gasto.fecha, monto=gasto.monto, descripcion=gasto.descripcion,
             categoria_id=categorias.get(gasto.categoria), metodo_pago_id=metodos.get(gasto.metodo),
         )
-        for gasto in planificar_gastos(hoy)
+        for gasto in plan
     ]
     db.session.add_all(gastos)
-    incompletos = sum(1 for gasto in gastos if not gasto.evaluar_completitud())
+    return sum(1 for gasto in gastos if not gasto.evaluar_completitud())
 
+
+def _auditar_creacion(usuario: Usuario, comando: str) -> None:
+    auditoria.registrar(
+        auditoria.CREAR, usuario_service.ENTIDAD, entidad_id=usuario.id,
+        detalle={"nuevo": {"nombre": usuario.nombre, "correo": usuario.correo}, "origen": comando},
+    )
+
+
+def crear(contrasena: str, hoy: date) -> ResumenDemo:
+    """`flask demo crear`: la cuenta PRUEBA Panadería con sus gastos y presupuestos, en una sola transacción."""
+    usuario, categorias = _nueva_cuenta(NOMBRE, CORREO, contrasena)
+    plan = planificar_gastos(hoy)
+    incompletos = _guardar_gastos(usuario, plan, categorias)
     meses = meses_con_presupuesto(hoy)
     presupuestos = [
         Presupuesto(usuario_id=usuario.id, categoria_id=categorias[nombre], anio=mes.year, mes=mes.month, monto=monto)
@@ -188,14 +249,24 @@ def crear(contrasena: str, hoy: date) -> ResumenDemo:
         if nombre in categorias
     ]
     db.session.add_all(presupuestos)
-    auditoria.registrar(
-        auditoria.CREAR, usuario_service.ENTIDAD, entidad_id=usuario.id,
-        detalle={"nuevo": {"nombre": NOMBRE, "correo": CORREO}, "origen": "flask demo crear"},
-    )
+    _auditar_creacion(usuario, "flask demo crear")
     db.session.commit()
     return ResumenDemo(
-        correo=CORREO, gastos=len(gastos), incompletos=incompletos, presupuestos=len(presupuestos),
+        correo=CORREO, gastos=len(plan), incompletos=incompletos, presupuestos=len(presupuestos),
         meses=tuple(meses), desde=hoy - timedelta(days=DIAS - 1), hasta=hoy,
+    )
+
+
+def crear_rendimiento(contrasena: str, mes: date, hoy: date) -> ResumenDemo:
+    """`flask demo rendimiento`: la cuenta PRUEBA Rendimiento con 500 gastos en el mes (CP-28)."""
+    usuario, categorias = _nueva_cuenta(NOMBRE_RENDIMIENTO, CORREO_RENDIMIENTO, contrasena)
+    plan = planificar_rendimiento(mes, hoy)
+    incompletos = _guardar_gastos(usuario, plan, categorias)
+    _auditar_creacion(usuario, "flask demo rendimiento")
+    db.session.commit()
+    return ResumenDemo(
+        correo=CORREO_RENDIMIENTO, gastos=len(plan), incompletos=incompletos, presupuestos=0,
+        meses=(mes,), desde=plan[0].fecha, hasta=plan[-1].fecha,
     )
 
 
