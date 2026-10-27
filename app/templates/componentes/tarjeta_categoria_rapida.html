@@ -1,0 +1,25 @@
+{#- Componente `tarjeta_categoria_rapida` (P-02, punto 2): categoría con su color, botón "+"
+    y botones "+S/ 5", "+S/ 10", "+S/ 20" que SUMAN al monto del registro rápido y seleccionan
+    la categoría (no guardan solos). Sin JavaScript, el "+" abre el formulario con la categoría. -#}
+{% macro tarjeta_categoria_rapida(categoria, monto_mes) -%}
+<section class="cg-tarjeta cg-rapida" data-cg-color="{{ categoria.color }}" data-cg-color-texto="{{ categoria.color|color_texto }}"
+         aria-label="{{ categoria.nombre }}">
+  <div class="cg-rapida__cabecera">
+    <div class="cg-rapida__datos">
+      <h2 class="cg-rapida__nombre">{{ categoria.nombre }}</h2>
+      <p class="cg-rapida__monto cg-numero">{{ monto_mes|soles }} este mes</p>
+    </div>
+    <a class="cg-rapida__mas" href="{{ url_for('gastos.nuevo', categoria=categoria.id) }}"
+       data-cg-rapida-categoria="{{ categoria.id }}" aria-label="Registrar un gasto de {{ categoria.nombre }}">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>
+    </a>
+  </div>
+  <div class="cg-rapida__montos">
+    {% for monto in (5, 10, 20) %}
+    <button type="button" class="cg-rapida__sumar cg-numero" data-cg-sumar="{{ monto }}"
+            data-cg-rapida-categoria="{{ categoria.id }}" data-cg-rapida-nombre="{{ categoria.nombre }}"
+            aria-label="Sumar S/ {{ monto }} al monto, en {{ categoria.nombre }}">+S/ {{ monto }}</button>
+    {% endfor %}
+  </div>
+</section>
+{%- endmacro %}

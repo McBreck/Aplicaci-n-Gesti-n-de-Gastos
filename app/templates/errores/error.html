@@ -1,0 +1,17 @@
+{#- Páginas de error 400, 403, 404, 429 y 500 (sin trazas) -#}
+{% extends "base_publica.html" %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block contenido %}
+<section class="cg-tarjeta cg-acceso cg-error">
+  <div class="cg-marca cg-marca--centrada">
+    <span class="cg-logo" aria-hidden="true">C</span>
+    <span class="cg-marca__texto">ControlGastos</span>
+  </div>
+  <p class="cg-error__codigo">Error {{ codigo }}</p>
+  <h1 class="cg-acceso__titulo">{{ titulo }}</h1>
+  <p class="cg-texto-secundario">{{ mensaje }}</p>
+  <a class="btn btn-cg w-100" href="{{ url_inicio or url_for('auth.login') }}">Volver al inicio</a>
+</section>
+{% endblock %}

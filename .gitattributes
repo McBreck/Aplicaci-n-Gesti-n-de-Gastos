@@ -1,0 +1,15 @@
+# Saltos de línea LF en el repositorio y en la copia de trabajo
+# (los scripts .sh del despliegue fallan en Ubuntu con CRLF)
+* text=auto eol=lf
+
+# Scripts de Windows con CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# Binarios
+*.woff2 binary
+*.woff binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

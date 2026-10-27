@@ -1,0 +1,143 @@
+{#- P-07 Reportes (CU-13, CU-14; RF-19, RF-20). La pantalla y el PDF usan el mismo Reporte. -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta, estado_vacio, punto_color %}
+{% from "componentes/formularios.html" import aviso %}
+
+{% set TIPOS = [("diario", "Diario"), ("semanal", "Semanal"), ("mensual", "Mensual"), ("personalizado", "Personalizado")] %}
+
+{% block titulo %}Reportes{% endblock %}
+
+{% block contenido %}
+{#- Valores del formulario: los de la solicitud o, si hubo errores, los que llegaron en la URL -#}
+{% set tipo_actual = solicitud.tipo if solicitud else (request.args.get("tipo") or "mensual") %}
+{% set agrupacion_actual = solicitud.agrupacion if solicitud else (request.args.get("agrupacion") or "categoria") %}
+{% set fecha_valor = request.args.get("fecha") or (solicitud.desde.isoformat() if solicitud and solicitud.tipo in ("diario", "semanal") else hoy.isoformat()) %}
+{% set mes_valor = solicitud.desde.strftime("%Y-%m") if solicitud and solicitud.tipo == "mensual" else (request.args.get("mes") or hoy.strftime("%Y-%m")) %}
+{% set desde_valor = solicitud.desde.isoformat() if solicitud and solicitud.tipo == "personalizado" else (request.args.get("desde") or "") %}
+{% set hasta_valor = solicitud.hasta.isoformat() if solicitud and solicitud.tipo == "personalizado" else (request.args.get("hasta") or "") %}
+
+<div class="cg-pila">
+  {% call tarjeta("Generar reporte") %}
+  <form class="cg-reporte-form" method="get" action="{{ url_for('reportes.generar') }}" novalidate>
+    <fieldset class="cg-grupo-campo">
+      <legend class="cg-grupo-campo__titulo">Período</legend>
+      <div class="cg-segmentado">
+        {% for valor, texto in TIPOS %}
+        <span class="cg-segmentado__opcion">
+          <input class="cg-segmentado__entrada" type="radio" name="tipo" id="periodo-{{ valor }}" value="{{ valor }}"
+                 {% if tipo_actual == valor %}checked{% endif %}>
+          <label class="cg-segmentado__boton" for="periodo-{{ valor }}">{{ texto }}</label>
+        </span>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="cg-reporte-campos">
+      <div class="cg-campo" data-cg-periodo="diario semanal">
+        <label class="form-label" for="reporte-fecha">Fecha</label>
+        <input class="form-control" type="date" id="reporte-fecha" name="fecha" value="{{ fecha_valor }}"
+               aria-describedby="reporte-fecha-ayuda">
+        <div class="form-text" id="reporte-fecha-ayuda">En el reporte semanal se usa la semana (de lunes a domingo) que contiene esta fecha.</div>
+      </div>
+      <div class="cg-campo" data-cg-periodo="mensual">
+        <label class="form-label" for="reporte-mes">Mes</label>
+        <select class="form-select" id="reporte-mes" name="mes">
+          {% for mes in meses %}
+          {% set clave = mes.strftime("%Y-%m") %}
+          <option value="{{ clave }}" {% if clave == mes_valor %}selected{% endif %}>{{ mes|mes_anio }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="cg-campo" data-cg-periodo="personalizado">
+        <label class="form-label" for="reporte-desde">Desde</label>
+        <input class="form-control" type="date" id="reporte-desde" name="desde" value="{{ desde_valor }}">
+      </div>
+      <div class="cg-campo" data-cg-periodo="personalizado">
+        <label class="form-label" for="reporte-hasta">Hasta</label>
+        <input class="form-control" type="date" id="reporte-hasta" name="hasta" value="{{ hasta_valor }}">
+      </div>
+    </div>
+
+    <fieldset class="cg-grupo-campo">
+      <legend class="cg-grupo-campo__titulo">Agrupar por</legend>
+      <div class="cg-segmentado">
+        {% for valor, texto in agrupaciones.items() %}
+        <span class="cg-segmentado__opcion">
+          <input class="cg-segmentado__entrada" type="radio" name="agrupacion" id="agrupacion-{{ valor }}" value="{{ valor }}"
+                 {% if agrupacion_actual == valor %}checked{% endif %}>
+          <label class="cg-segmentado__boton" for="agrupacion-{{ valor }}">{{ texto }}</label>
+        </span>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <button class="btn btn-cg" type="submit"><i class="bi bi-bar-chart-line" aria-hidden="true"></i>Generar reporte</button>
+  </form>
+  {% endcall %}
+
+  {% for texto in errores %}{{ aviso(texto, "error") }}{% endfor %}
+  {% for texto in avisos %}{{ aviso(texto, "aviso") }}{% endfor %}
+
+  {% if reporte %}
+  <section class="cg-tarjeta cg-reporte" aria-labelledby="titulo-reporte">
+    <header class="cg-reporte__cabecera">
+      <div>
+        <p class="cg-reporte__negocio">{{ reporte.negocio }}</p>
+        <h2 class="cg-reporte__titulo" id="titulo-reporte">Reporte de gastos</h2>
+        <p class="cg-reporte__periodo">
+          {{ reporte.solicitud.titulo_periodo }} · Agrupado por {{ reporte.solicitud.nombre_agrupacion|lower }}
+        </p>
+      </div>
+      <p class="cg-reporte__emision">Fecha de emisión<br><strong class="cg-numero">{{ reporte.emitido|fecha_hora }}</strong></p>
+    </header>
+    <div class="cg-tarjeta__cuerpo">
+      {% if reporte.vacio %}
+      {{ estado_vacio("bi-calendar-x", mensaje_sin_gastos) }}
+      {% else %}
+      <table class="table cg-tabla cg-tabla-reporte align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col">{{ reporte.solicitud.nombre_agrupacion }}</th>
+            <th scope="col" class="text-end cg-reporte__col-cantidad">Cantidad</th>
+            <th scope="col" class="text-end">Total</th>
+            <th scope="col" class="text-end">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in reporte.filas %}
+          <tr>
+            <td>
+              {% if fila.color %}<span class="cg-reporte__grupo">{{ punto_color(fila.color) }}{{ fila.grupo }}</span>
+              {% else %}{{ fila.grupo }}{% endif %}
+              {#- En celulares la cantidad se muestra aquí y se oculta su columna -#}
+              <span class="cg-reporte__cantidad">{{ fila.cantidad }} {{ "gasto" if fila.cantidad == 1 else "gastos" }}</span>
+            </td>
+            <td class="text-end cg-numero cg-reporte__col-cantidad">{{ fila.cantidad }}</td>
+            <td class="text-end cg-numero">{{ fila.total|soles }}</td>
+            <td class="text-end cg-numero">{{ fila.porcentaje|porcentaje }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="cg-fila-total">
+            <th scope="row">
+              Total
+              <span class="cg-reporte__cantidad">{{ reporte.cantidad }} {{ "gasto" if reporte.cantidad == 1 else "gastos" }}</span>
+            </th>
+            <td class="text-end cg-numero cg-reporte__col-cantidad">{{ reporte.cantidad }}</td>
+            <td class="text-end cg-numero">{{ reporte.total|soles }}</td>
+            <td class="text-end cg-numero">{{ 100|porcentaje }}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="cg-botones cg-botones--fin">
+        <a class="btn btn-cg" href="{{ url_for('reportes.pdf', **reporte.solicitud.como_argumentos()) }}">
+          <i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i>Descargar PDF
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

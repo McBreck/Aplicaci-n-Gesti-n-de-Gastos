@@ -1,0 +1,24 @@
+{#- P-01 Inicio de sesión -#}
+{% extends "base_publica.html" %}
+{% from "componentes/formularios.html" import campo, campo_contrasena, aviso %}
+
+{% block titulo %}Ingresar{% endblock %}
+
+{% block contenido %}
+<section class="cg-tarjeta cg-acceso">
+  <div class="cg-marca cg-marca--centrada">
+    <span class="cg-logo" aria-hidden="true">C</span>
+    <span class="cg-marca__texto">ControlGastos</span>
+  </div>
+  <h1 class="cg-acceso__titulo">Ingresa a ControlGastos</h1>
+
+  {% if error %}{{ aviso(error, "error") }}{% endif %}
+
+  <form method="post" novalidate>
+    {{ form.csrf_token }}
+    {{ campo(form.correo, type="email", autocomplete="username", inputmode="email", autofocus=true) }}
+    {{ campo_contrasena(form.contrasena, autocomplete="current-password") }}
+    <button class="btn btn-cg w-100 mt-2" type="submit">Ingresar</button>
+  </form>
+</section>
+{% endblock %}

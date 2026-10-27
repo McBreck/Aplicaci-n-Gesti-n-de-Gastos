@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  pruebas:
+    name: Migraciones y pruebas (PostgreSQL 16)
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: controlgastos
+          POSTGRES_PASSWORD: controlgastos
+          POSTGRES_DB: controlgastos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U controlgastos"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      APP_ENV: desarrollo
+      SECRET_KEY: clave-de-integracion-continua-no-usar-en-produccion-0123456789
+      DATABASE_URL: postgresql+psycopg://controlgastos:controlgastos@localhost:5432/controlgastos
+      TEST_DATABASE_URL: postgresql+psycopg://controlgastos:controlgastos@localhost:5432/controlgastos_pruebas
+      PGPASSWORD: controlgastos
+
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+
+      - name: Crear la base de pruebas
+        run: psql -h localhost -U controlgastos -d controlgastos -c "CREATE DATABASE controlgastos_pruebas;"
+
+      - name: Aplicar migraciones
+        run: flask db upgrade
+
+      - name: Verificar que los modelos coinciden con las migraciones
+        run: flask db check
+
+      - name: Ejecutar pruebas con cobertura de servicios
+        run: pytest --cov=app/services --cov-report=term-missing

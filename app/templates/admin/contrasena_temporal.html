@@ -1,0 +1,25 @@
+{#- P-08 Contraseña temporal: se muestra una sola vez -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta %}
+{% from "componentes/formularios.html" import aviso %}
+
+{% block titulo %}Contraseña restablecida{% endblock %}
+
+{% block contenido %}
+<div class="cg-columna-formulario">
+  {% call tarjeta("Contraseña temporal de " ~ usuario.nombre) %}
+  {{ aviso("Anótala o cópiala ahora: no se volverá a mostrar.", "aviso") }}
+  <div class="cg-contrasena-temporal">
+    <code id="contrasenaTemporal" class="cg-contrasena-temporal__valor">{{ contrasena }}</code>
+    <button type="button" class="btn btn-cg-secundario" data-cg-copiar="contrasenaTemporal">
+      <i class="bi bi-clipboard" aria-hidden="true"></i> Copiar
+    </button>
+  </div>
+  <p class="cg-texto-secundario">
+    Compártela con {{ usuario.nombre }} ({{ usuario.correo }}). Su contraseña anterior ya no funciona
+    y puede cambiar esta en Mi cuenta.
+  </p>
+  <a class="btn btn-cg" href="{{ url_for('admin.listar_usuarios') }}">Volver a usuarios</a>
+  {% endcall %}
+</div>
+{% endblock %}

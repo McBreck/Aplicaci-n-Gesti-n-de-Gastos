@@ -7,10 +7,10 @@ Instrucciones permanentes para cualquier sesión de Claude Code en este reposito
 ## Reglas que no se negocian (sección 0 de la especificación)
 
 1. **Commits automáticos con autoría del usuario** (regla modificada por el usuario el 26/10/2026; reemplaza a "yo hago los commits a mano" de la especificación original).
-   - Al cerrar cada etapa, Claude ejecuta `git add` y `git commit` con commits pequeños y coherentes, y luego se detiene.
-   - El autor es siempre el usuario: `McBreck <mponcev4@upao.edu.pe>`, configurado con `git config --local` en este repositorio.
+   - Al cerrar cada etapa, Claude ejecuta `git add`, `git commit` (commits pequeños y coherentes) y `git push` de la rama de trabajo (`develop`), y luego se detiene.
+   - El autor es siempre el usuario: `McBreck <mponcev4@upao.edu.pe>`, configurado con `git config --local` en este repositorio. Verificar `git config user.email` antes de cada commit.
    - Los mensajes **no llevan** `Co-Authored-By: Claude` ni ninguna otra atribución a Claude.
-   - Claude NO ejecuta sin permiso explícito en ese momento: `git push`, `git merge`, `git tag`, `git rebase`, `git reset`, `git stash` ni comandos destructivos.
+   - Claude NO ejecuta sin permiso explícito en ese momento: `git merge`, `git tag`, `git rebase`, `git reset`, `git stash`, `push --force` ni comandos destructivos (la fusión a `main` y la etiqueta de cada fase se piden en la compuerta).
 2. **Trabajo por etapas, una por vez.** Cada etapa corresponde a un elemento de la EDT (`07_plan_implementacion.md`). Al terminar: ejecutar pruebas, entregar el cierre de etapa (sección 14) y **detenerse**. No empezar la siguiente hasta que el usuario escriba "continúa con la etapa N".
 3. **No adelantar trabajo** de etapas posteriores ni agregar funciones fuera de la especificación. Si algo no está definido, preguntar antes de asumir.
 4. **Si una petición contradice la especificación, avisar antes de hacerlo.**
@@ -46,6 +46,131 @@ Python 3.11 · Flask 3.0.3 · SQLAlchemy 2 (estilo 2.0) · Flask-Migrate/Alembic
 Tres capas, MVC + capa de servicios: Vista (Jinja2/Bootstrap/Chart.js) → Controladores (blueprints + Flask-WTF) → Servicios (reglas de negocio, Pandas, NumPy, ReportLab) → Modelo (SQLAlchemy 2, Alembic, PostgreSQL 16). Producción: Nginx → Gunicorn → Flask. Toda consulta filtra por `usuario_id = current_user.id`; id ajeno → **404**. Detalle de estructura, servicios y rutas en `docs/especificacion/03_arquitectura_y_datos.md`.
 
 ---
+
+## Convenciones del código (establecidas en EDT 3.1 y 3.2)
+
+- **Servicios** en `app/services/<nombre>.py` como funciones. El servicio hace el `commit`. Los errores de negocio llevan mensajes para el usuario:
+  - con un solo campo: `ErrorUsuario(mensaje, campo=...)`;
+  - con varios campos a la vez: `ErrorValidacion(errores)`, como en `gasto.py`.
+  Los formularios Flask-WTF solo recogen datos y el token CSRF; la validación de negocio vive en el servicio.
+- **Auditoría**: `auditoria.registrar(accion, entidad, ...)` agrega el evento sin hacer commit, para que se guarde junto con la operación. Nunca incluir contraseñas.
+- **Acceso**: todas las rutas exigen sesión mediante el `before_request` global (`app/seguridad.py`). Los blueprints de microemprendedor usan `@bp.before_request` con `rol_requerido(ROL_MICROEMPRENDEDOR)`. Los datos propios se obtienen con `obtener_propio_o_404`.
+- **Navegación**: un ítem del menú aparece solo cuando su endpoint existe. Endpoints previstos: `gastos.listar`, `gastos.nuevo` (también activa el FAB), `presupuesto.ver`, `categorias.listar`, `reportes.inicio` (`app/interfaz.py`).
+- **Plantillas**: `base.html` (con sesión) y `base_publica.html` (sin sesión). Macros en `componentes/ui.html` y `componentes/formularios.html`.
+- **Sin estilos ni scripts en línea** (CSP `'self'`). Los colores y anchos variables van en `data-cg-color`, `data-cg-color-texto` y `data-cg-ancho`, que aplica `static/js/app.js`. Una prueba revisa todas las plantillas.
+- **Tablas**: usar `cg-tabla cg-tabla-apilable` con `data-etiqueta` en cada celda. Por debajo de 1200 px las filas se apilan como tarjetas (RNF-04).
+- **Pruebas**:
+  - fixtures en `tests/conftest.py`: `sesion`, `cliente`, `crear_usuario`, `crear_admin`, `crear_microemprendedor` (con sus categorías), `cargar_gastos`, `id_categoria` e `iniciar_sesion`;
+  - los datos de verificación de la sección 9 están en `tests/datos_verificacion.py`; úsalos también en la EDT 3.5;
+  - datos con el prefijo `PRUEBA`; la base de pruebas se borra y se recrea con la migración.
+- **Listados**: una consulta para la página, otra para los agregados y otra para los totales por día (sin N+1). Siempre se filtra por `usuario_id` y `eliminado = FALSE`.
+- **Presupuesto**: `presupuesto.comparar(usuario_id, mes)` es la única fuente de lo planificado y lo ejecutado por categoría (A7), de A9 y de las alertas. La usan P-05, el widget, la lista de categorías de la barra lateral y el badge.
+  - La barra lateral la pide al dibujarse y la guarda en `g` una vez por petición (`app/interfaz.py`).
+  - En la EDT 3.5, A7 y A9 sobre el DataFrame deben dar los mismos valores.
+- **Analítica (EDT 3.5)**:
+  - `analitica.construir_dataframe()` es la única consulta de gastos para el análisis; las métricas A1–A9 y S1 son funciones puras sobre el DataFrame;
+  - `analitica.analizar_mes(usuario_id, mes, hoy)` reúne todo para el dashboard (P1 y R1–R7 incluidos) y recibe `hoy` como parámetro para que las pruebas no dependan del reloj;
+  - las pruebas comprueban que A8 coincide con `gasto.resumir` y que A7/A9 coinciden con `presupuesto.comparar`.
+- **Redondeo**: todo porcentaje pasa por `calculo.porcentaje_de` (decimal, "mitad hacia arriba", 1 decimal) y todo monto agregado por `calculo.a_soles`. Nunca uses `round()` directo para porcentajes que se muestran.
+- **Utilidades compartidas**:
+  - `services/validacion.py`: `interpretar_monto` (con `permitir_cero`) y `ErrorValidacion`;
+  - `services/periodo.py`: `interpretar_mes(?mes=AAAA-MM)`, mes anterior y siguiente, último día;
+  - macro `componentes/selector_mes.html`.
+- **Dashboard y API (EDT 3.6)**:
+  - las cifras se dibujan en el servidor;
+  - los gráficos se piden a `/api/dashboard`, armados por `analitica.datos_graficos`;
+  - toda ruta bajo `/api/` responde errores en JSON (401 sin sesión, 403, 404);
+  - Chart.js se carga solo en páginas con gráficos (`{% block scripts %}`, RNF-02);
+  - el JS de cada pantalla va en su propio archivo (`static/js/dashboard.js`), y los textos del usuario se escriben con `textContent`.
+- **Reportes (EDT 3.7)**:
+  - `reporte.interpretar_solicitud(request.args, hoy)` devuelve la `SolicitudReporte`, y `como_argumentos()` rearma su URL (de la pantalla al PDF);
+  - `reporte.generar` usa `analitica.construir_dataframe`, la misma fuente que el dashboard;
+  - el PDF se arma en memoria y nunca se guarda en el servidor; el texto del usuario pasa por `escape()` antes de llegar a ReportLab;
+  - la tabla del reporte no es apilable: es compacta y, en el celular, la cantidad pasa bajo el grupo;
+  - en las pruebas, el texto del PDF se lee con `tests/utilidades_pdf.texto_pdf`.
+- **Datos de demostración (EDT 3.8)**:
+  - `app/demo.py` no es un servicio de negocio: arma datos PRUEBA para demostraciones y pruebas;
+  - `planificar_gastos(hoy)` es una función pura y reproducible (semilla fija);
+  - `crear()` guarda todo en una transacción y `borrar()` elimina las cuentas PRUEBA por completo;
+  - `flask demo rendimiento` (etapa 9) va en el mismo módulo y también usa el prefijo PRUEBA.
+- **Estilo**: `python -m flake8` desde la raíz, con la configuración de `setup.cfg` (PEP 8, líneas de hasta 120 caracteres). Cada servicio tiene su archivo de pruebas en `tests/unit/`.
+- **Servidor de desarrollo**: `flask run --debug`. Sin `--debug`, las plantillas quedan en caché.
+
+## Decisiones confirmadas por los investigadores (26/10/2026)
+
+- **Versiones indirectas fijas** en `requirements.txt`: SQLAlchemy 2.1.6, alembic 1.20.1 y limits 5.8.0.
+- **Casos de prueba**: catálogo propuesto y confirmado (los nombres de las pruebas usan estos códigos):
+
+  | CP | Qué cubre |
+  |---|---|
+  | CP-01 | Ingreso válido |
+  | CP-02 | Datos incorrectos |
+  | CP-03 | Bloqueo tras 5 intentos |
+  | CP-04 | Cuenta desactivada |
+  | CP-05 | Cierre de sesión |
+  | CP-06 | Cierre por inactividad |
+  | CP-07 | Cambio de contraseña |
+  | CP-08 | Alta de cuenta |
+  | CP-09 | Duplicado, edición, estado y restablecimiento |
+  | CP-10 | Registro completo |
+  | CP-11 | Registro solo con fecha y monto |
+  | CP-12 | Monto inválido |
+  | CP-13 | Fecha futura |
+  | CP-14 | Completar al editar |
+  | CP-15 | Eliminar |
+  | CP-16 | Filtros y paginación |
+  | CP-17 | Completitud y dato más omitido |
+  | CP-18 | Crear y renombrar categorías |
+  | CP-19 | Desactivar categoría |
+  | CP-20 | Presupuesto y copia del mes anterior |
+  | CP-21 | Comparación y alertas (límites 79.9, 80, 100 y 100.1 %) |
+  | CP-22 | Los cuatro KPI del dashboard coinciden con el listado del mismo período |
+  | CP-23 | Datos de los gráficos (`/api/dashboard`): solo del usuario y coherentes con el total |
+  | CP-24 | Proyección (o "Datos insuficientes") y recomendaciones con acción |
+  | CP-25 | Estados especiales (mes sin gastos, sin presupuesto, error de gráficos), tarjetas rápidas y actividad |
+  | CP-26 | Reporte en pantalla: los cuatro tipos de período, las tres agrupaciones, total = suma del período, período sin gastos y solo datos del usuario |
+  | CP-27 | PDF: nombre del archivo, mismos datos que la pantalla y error al generarlo |
+  | CP-29 | Control de acceso (403 y 404) |
+  | CP-30 | CSRF |
+  | CP-31 | Contraseñas protegidas |
+
+  CP-28 y CP-32 a CP-34 se definen en la etapa 9 (EDT 4.1–4.7).
+- **Detalles aprobados**:
+  - P-08 solo gestiona cuentas de microemprendedor; las de administrador se crean con `flask crear-admin`;
+  - la contraseña nueva debe ser distinta de la actual;
+  - en P-08, "Desactivar" y "Restablecer" van en el menú "Más acciones";
+  - los filtros de gastos incluyen "Sin categoría" y "Sin registrar";
+  - la búsqueda no distingue tildes ni mayúsculas;
+  - si "Desde" es posterior a "Hasta", las fechas se intercambian con un aviso;
+  - "Copiar del mes anterior" reemplaza solo las categorías que coinciden, conserva las demás y no copia categorías inactivas;
+  - los gastos sin categoría no cuentan en A9 (P-05 lo aclara con una nota);
+  - el presupuesto se edita entre 2026-01 y 2100-12; los demás meses son de solo lectura;
+  - cada categoría de la barra lateral abre Mis gastos filtrado por ella.
+- **Recomendaciones (confirmadas tras la EDT 3.5)**:
+  - R2 muestra el exceso en soles y en % sobre lo planificado ("en S/ 30.30 (5.8 %)");
+  - R3 y R6 solo aplican al mes en curso;
+  - "Sin categoría" no genera R5 ni R7;
+  - en empates gana la prioridad, luego el orden de la tabla (R5 antes que R7) y luego el valor más alto.
+- **Dashboard (confirmado tras la EDT 3.6)**:
+  - las tarjetas rápidas se eligen por cantidad de registros en los últimos 30 días y muestran el monto del mes; el "+" elige la categoría en el registro rápido y, sin JavaScript, abre P-03 con la categoría marcada;
+  - el selector de mes no permite meses futuros;
+  - en un mes anterior, la actividad reciente muestra los últimos 7 días hasta el corte de ese mes.
+- **Reportes (confirmado tras la EDT 3.7)**:
+  - la semana va de lunes a domingo y contiene la fecha elegida (igual que el gráfico semanal);
+  - el mensual ofrece los últimos 24 meses; para fechas más antiguas se usa Personalizado;
+  - por categoría y por método, las filas van de mayor a menor total ("Sin categoría" y "Sin registrar" son un grupo más); por fecha, solo los días con gastos, del más antiguo al más reciente;
+  - el PDF es A4 vertical, con la agrupación y el número de página; si el usuario no tiene nombre de negocio, va su nombre;
+  - en un período sin gastos no se ofrece el botón de PDF;
+  - en el celular la cantidad va bajo el nombre del grupo ("2 gastos") y se oculta su columna, para que la tabla quepa en 320 px.
+
+## Propuesto en la EDT 3.8 (pendiente de confirmación)
+
+- **Cuenta de demostración**:
+  - nombre y negocio "PRUEBA Panadería", correo `prueba.panaderia@controlgastos.test`; la contraseña se elige al crearla, como en `flask crear-admin`;
+  - 60 días hasta hoy con semilla fija, cerca del 20 % de gastos incompletos (el método de pago es el más omitido) y el presupuesto de cada mes desde enero de 2026;
+  - "Otros" queda sin presupuesto y Transporte tiene un monto bajo a propósito, para que se vean Excedida y las recomendaciones.
+- **`flask demo borrar`**: borra todas las cuentas cuyo nombre empieza con "PRUEBA" (también las de administrador), con sus gastos, presupuestos, categorías y eventos de la bitácora. Pide confirmación (s/n) salvo con `--si`.
+- **PEP 8**: líneas de hasta 120 caracteres (`setup.cfg`). Se verifica con flake8 instalado aparte, porque `requirements-dev.txt` está fijado en la especificación. Propuesta: agregar `flake8==7.4.1` a `requirements-dev.txt` y un paso "Estilo PEP 8" al CI.
 
 ## Entorno local (Windows)
 - Python 3.11.9 instalado junto a 3.12: usar `py -3.11` para crear el venv (`py -3.11 -m venv .venv`).

@@ -1,0 +1,138 @@
+{#- P-03 Registrar / editar gasto: un solo formulario (RNF-05) -#}
+{% extends "base.html" %}
+{% from "componentes/ui.html" import tarjeta, chip_estado %}
+{% from "componentes/formularios.html" import aviso %}
+
+{% set iconos_metodo = {
+  "Efectivo": "bi-cash-coin",
+  "Yape": "bi-phone",
+  "Plin": "bi-phone-vibrate",
+  "Transferencia bancaria": "bi-bank",
+  "Tarjeta": "bi-credit-card",
+} %}
+{% set nombres_cortos = {"Transferencia bancaria": "Transferencia"} %}
+
+{% macro error_de(campo, id) -%}
+{% if errores[campo] %}
+<div class="invalid-feedback d-block" id="{{ id }}-error">
+  <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ errores[campo] }}
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro falta(etiqueta) -%}
+{% if etiqueta in faltantes %}<span class="cg-falta__etiqueta">{{ chip_estado("Falta completar") }}</span>{% endif %}
+{%- endmacro %}
+
+{% block titulo %}{{ "Editar gasto" if gasto else "Registrar gasto" }}{% endblock %}
+
+{% block contenido %}
+<div class="cg-columna-gasto">
+  {% if gasto and faltantes %}
+  {{ aviso("Este gasto está incompleto. Completa los datos marcados para que cuente como registro completo.", "aviso") }}
+  {% endif %}
+  {% if errores %}{{ aviso("Revisa los datos marcados para poder guardar.", "error") }}{% endif %}
+
+  {% call tarjeta() %}
+  <form method="post" class="cg-formulario-gasto" novalidate>
+    {{ form.csrf_token }}
+
+    <div class="cg-campo">
+      <label class="form-label" for="monto">Monto</label>
+      <div class="cg-monto-grande{% if errores.monto %} is-invalid{% endif %}">
+        <span class="cg-monto-grande__moneda" aria-hidden="true">S/</span>
+        <input class="cg-monto-grande__entrada cg-numero" id="monto" name="monto" inputmode="decimal" autocomplete="off"
+               placeholder="0.00" value="{{ valores.monto or '' }}" required
+               aria-describedby="monto-ayuda{% if errores.monto %} monto-error{% endif %}"
+               {% if errores.monto %}aria-invalid="true"{% endif %} {% if not gasto %}autofocus{% endif %}>
+      </div>
+      <div class="form-text" id="monto-ayuda">Obligatorio. Puedes usar punto o coma para los decimales, por ejemplo 15.50.</div>
+      {{ error_de("monto", "monto") }}
+    </div>
+
+    <div class="cg-campo">
+      <label class="form-label" for="fecha">Fecha</label>
+      <input class="form-control{% if errores.fecha %} is-invalid{% endif %}" type="date" id="fecha" name="fecha"
+             value="{{ valores.fecha or '' }}" max="{{ hoy.isoformat() }}" required
+             aria-describedby="fecha-ayuda{% if errores.fecha %} fecha-error{% endif %}"
+             {% if errores.fecha %}aria-invalid="true"{% endif %}>
+      <div class="form-text" id="fecha-ayuda">Obligatoria. No puede ser posterior a hoy.</div>
+      {{ error_de("fecha", "fecha") }}
+    </div>
+
+    <fieldset class="cg-grupo-campo{% if 'categoría' in faltantes %} cg-falta{% endif %}"
+              aria-describedby="categoria-ayuda{% if errores.categoria_id %} categoria-error{% endif %}">
+      <legend class="cg-grupo-campo__titulo">Categoría {{ falta("categoría") }}</legend>
+      {% if categorias %}
+      <div class="cg-opciones">
+        {% for categoria in categorias %}
+        <div class="cg-opcion">
+          <input class="cg-opcion__entrada" type="radio" name="categoria_id" id="categoria-{{ categoria.id }}"
+                 value="{{ categoria.id }}" {% if valores.categoria_id == categoria.id|string %}checked{% endif %}>
+          <label class="cg-opcion__boton cg-opcion__boton--categoria" for="categoria-{{ categoria.id }}"
+                 data-cg-color="{{ categoria.color }}" data-cg-color-texto="{{ categoria.color|color_texto }}">
+            <span class="cg-punto" aria-hidden="true"></span>
+            <span>{{ categoria.nombre }}{% if not categoria.activa %} (inactiva){% endif %}</span>
+            <i class="bi bi-check-circle-fill cg-opcion__marca" aria-hidden="true"></i>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="cg-texto-secundario mb-0">No tienes categorías activas. Puedes guardar el gasto sin categoría.</p>
+      {% endif %}
+      <div class="form-text" id="categoria-ayuda">Elige en qué rubro va este gasto.</div>
+      {{ error_de("categoria_id", "categoria") }}
+    </fieldset>
+
+    <fieldset class="cg-grupo-campo{% if 'método de pago' in faltantes %} cg-falta{% endif %}"
+              aria-describedby="metodo-ayuda{% if errores.metodo_pago_id %} metodo-error{% endif %}">
+      <legend class="cg-grupo-campo__titulo">Método de pago {{ falta("método de pago") }}</legend>
+      <div class="cg-opciones cg-opciones--metodos">
+        {% for metodo in metodos %}
+        <div class="cg-opcion">
+          <input class="cg-opcion__entrada" type="radio" name="metodo_pago_id" id="metodo-{{ metodo.id }}"
+                 value="{{ metodo.id }}" {% if valores.metodo_pago_id == metodo.id|string %}checked{% endif %}>
+          <label class="cg-opcion__boton" for="metodo-{{ metodo.id }}">
+            <i class="bi {{ iconos_metodo.get(metodo.nombre, 'bi-wallet2') }}" aria-hidden="true"></i>
+            <span>{{ nombres_cortos.get(metodo.nombre, metodo.nombre) }}</span>
+            <i class="bi bi-check-circle-fill cg-opcion__marca" aria-hidden="true"></i>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="form-text" id="metodo-ayuda">¿Cómo pagaste?</div>
+      {{ error_de("metodo_pago_id", "metodo") }}
+    </fieldset>
+
+    <div class="cg-campo{% if 'descripción' in faltantes %} cg-falta{% endif %}">
+      <label class="form-label" for="descripcion">Descripción {{ falta("descripción") }}</label>
+      <input class="form-control{% if errores.descripcion %} is-invalid{% endif %}" id="descripcion" name="descripcion"
+             maxlength="255" value="{{ valores.descripcion or '' }}" placeholder="Por ejemplo: Harina 2 sacos"
+             autocomplete="off" data-cg-contador="descripcion-contador"
+             aria-describedby="descripcion-ayuda descripcion-contador{% if errores.descripcion %} descripcion-error{% endif %}">
+      <div class="cg-campo__pie">
+        <div class="form-text" id="descripcion-ayuda">¿En qué gastaste? Te ayudará a reconocerlo después.</div>
+        <div class="form-text cg-numero" id="descripcion-contador">{{ (valores.descripcion or '')|length }}/255</div>
+      </div>
+      {{ error_de("descripcion", "descripcion") }}
+    </div>
+
+    <div class="cg-botones">
+      <button class="btn btn-cg" type="submit">Guardar</button>
+      <a class="btn btn-cg-secundario" href="{{ url_volver }}">Cancelar</a>
+      {% if gasto %}
+      <button type="button" class="btn btn-cg-secundario cg-boton-peligro-suave ms-auto"
+              data-bs-toggle="modal" data-bs-target="#modalConfirmacion"
+              data-cg-accion="{{ url_for('gastos.eliminar', id_gasto=gasto.id) }}"
+              data-cg-titulo="Eliminar gasto"
+              data-cg-mensaje="Se eliminará el gasto del {{ gasto.fecha|fecha }} por {{ gasto.monto|soles }}{% if gasto.descripcion %} ({{ gasto.descripcion }}){% endif %}. Dejará de aparecer en tus listados, reportes y gráficos."
+              data-cg-boton="Eliminar" data-cg-peligro>
+        <i class="bi bi-trash3" aria-hidden="true"></i>Eliminar
+      </button>
+      {% endif %}
+    </div>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}
